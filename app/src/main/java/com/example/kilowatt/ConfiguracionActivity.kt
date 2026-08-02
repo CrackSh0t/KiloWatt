@@ -1,9 +1,11 @@
 package com.example.kilowatt
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.kilowatt.data.AppDatabase
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.Submedidor
@@ -14,17 +16,42 @@ class ConfiguracionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityConfiguracionBinding
     private lateinit var database: AppDatabase
+    private lateinit var adapter: InquilinoAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityConfiguracionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Obtenemos la instancia de Room
         database = AppDatabase.getDatabase(this)
+
+        setupRecyclerView()
+        observarInquilinos()
 
         binding.btnGuardarInquilino.setOnClickListener {
             guardarDatos()
+        }
+
+        binding.btnIrALecturas.setOnClickListener {
+            val intent = Intent(this, LecturasActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
+    private fun setupRecyclerView() {
+        adapter = InquilinoAdapter()
+        binding.rvInquilinos.apply {
+            layoutManager = LinearLayoutManager(this@ConfiguracionActivity)
+            adapter = this@ConfiguracionActivity.adapter
+        }
+    }
+
+    private fun observarInquilinos() {
+        // Se ejecuta automáticamente cada vez que los datos en Room cambien
+        lifecycleScope.launch {
+            database.inquilinoDao().obtenerTodosLosInquilinos().collect { lista ->
+                adapter.actualizarLista(lista)
+            }
         }
     }
 
@@ -35,14 +62,12 @@ class ConfiguracionActivity : AppCompatActivity() {
         val esAreaComun = binding.cbEsAreaComun.isChecked
 
         if (nombreEspacio.isEmpty()) {
-            Toast.makeText(this, "Por favor ingresa el nombre del espacio o departamento", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Por favor ingresa el nombre del espacio", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Ejecutamos la inserción en segundo plano con Corrutinas
         lifecycleScope.launch {
             if (esAreaComun) {
-                // Si es área común, guardamos solo el submedidor sin inquilino
                 val nuevoSubmedidor = Submedidor(
                     nombreEspacio = nombreEspacio,
                     esAreaComun = true,
@@ -55,18 +80,16 @@ class ConfiguracionActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                // 1. Guardamos el Inquilino
                 val nuevoInquilino = Inquilino(
                     nombreCompleto = nombre,
                     telefonoWhatsapp = telefono
                 )
-                database.inquilinoDao().insertarInquilino(nuevoInquilino)
+                val idInquilino = database.inquilinoDao().insertarInquilino(nuevoInquilino)
 
-                // 2. Guardamos el Submedidor asignado
                 val nuevoSubmedidor = Submedidor(
                     nombreEspacio = nombreEspacio,
                     esAreaComun = false,
-                    idInquilinoTitular = null // Aquí podrías relacionar los IDs
+                    idInquilinoTitular = idInquilino.toInt()
                 )
                 database.submedidorDao().insertarSubmedidor(nuevoSubmedidor)
             }

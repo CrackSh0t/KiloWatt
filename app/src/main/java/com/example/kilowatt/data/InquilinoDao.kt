@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface InquilinoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertarInquilino(inquilino: Inquilino)
+    suspend fun insertarInquilino(inquilino: Inquilino): Long
 
     @Query("SELECT * FROM inquilinos ORDER BY nombreCompleto ASC")
     fun obtenerTodosLosInquilinos(): Flow<List<Inquilino>>

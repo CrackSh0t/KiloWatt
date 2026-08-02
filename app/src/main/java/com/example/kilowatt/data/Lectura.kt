@@ -7,8 +7,10 @@ import androidx.room.PrimaryKey
 data class Lectura(
     @PrimaryKey(autoGenerate = true)
     val idLectura: Int = 0,
-    val idMedidor: Int,           // Relación con el Submedidor
-    val mesPeriodo: String,       // Ej: "2026-08"
-    val lecturaAnterior: Double,  // Valor del contador mes pasado
-    val lecturaActual: Double     // Valor del contador este mes
+    val idSubmedidor: Int,
+    val mesPeriodo: String,
+    val lecturaAnterior: Double,
+    val lecturaActual: Double,
+    val consumoKwh: Double,
+    val montoPagarSoles: Double
 )
