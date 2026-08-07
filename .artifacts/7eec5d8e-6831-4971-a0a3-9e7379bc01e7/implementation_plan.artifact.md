@@ -1,27 +1,21 @@
-# Corrección de cierre inesperado (Crash) al iniciar la aplicación
+# Corrección de errores de eliminación en Configuración
 
-La aplicación se cierra inmediatamente debido a cambios recientes en el esquema de la base de datos Room (`Submedidor` y `Lectura`) sin haber incrementado la versión de la base de datos ni proporcionado una migración. Esto causa un `IllegalStateException` al intentar acceder a los datos.
+Se han identificado dos errores de compilación en `ConfiguracionActivity.kt` debido a que las funciones para eliminar registros no existen en los DAOs de la base de datos Room.
 
 ## Cambios Propuestos
 
-### Componente de Datos (Room)
-
-#### [MODIFY] [AppDatabase.kt](file:///D:/Usuarios/Fernando/AndroidStudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AppDatabase.kt)
-- Incrementar la versión de la base de datos de `1` a `2`.
-- Agregar `.fallbackToDestructiveMigration()` al constructor de la base de datos para permitir que Room recree las tablas con el nuevo esquema (esto borrará los datos de prueba actuales, lo cual es normal en esta etapa de desarrollo).
+### Componente de Datos (Room DAOs)
 
 #### [MODIFY] [InquilinoDao.kt](file:///D:/Usuarios/Fernando/AndroidStudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoDao.kt)
-- Cambiar el tipo de retorno de `insertarInquilino` de `Unit` a `Long` para poder obtener el ID del inquilino recién creado.
+- Agregar la anotación `@Delete` y la función `eliminarInquilino(inquilino: Inquilino)`.
 
-### Actividades
-
-#### [MODIFY] [ConfiguracionActivity.kt](file:///D:/Usuarios/Fernando/AndroidStudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt)
-- Corregir la lógica de guardado para que el `Submedidor` se asocie correctamente con el `Inquilino` creado (usando el ID retornado por la base de datos).
-- Mejorar la experiencia de usuario agregando un botón para ir a la pantalla de Lecturas una vez configurado.
+#### [MODIFY] [SubmedidorDao.kt](file:///D:/Usuarios/Fernando/AndroidStudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/SubmedidorDao.kt)
+- Agregar la anotación `@Delete` y la función `eliminarSubmedidor(submedidor: Submedidor)`.
 
 ## Plan de Verificación
 
+### Pruebas de Compilación
+- Ejecutar un build del proyecto para asegurar que las referencias en `ConfiguracionActivity` ahora se resuelven correctamente.
+
 ### Pruebas Manuales
-- Ejecutar la aplicación y verificar que ya no se cierra al iniciar.
-- Registrar un nuevo inquilino y verificar que aparece en la lista.
-- Verificar que el registro de inquilinos y submedidores funcione correctamente en la base de datos.
+- Abrir la pantalla de configuración, editar un inquilino y probar el botón "Eliminar" para confirmar que el registro desaparece de la lista.

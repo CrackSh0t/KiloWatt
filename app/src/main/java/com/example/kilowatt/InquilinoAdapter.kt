@@ -3,12 +3,14 @@ package com.example.kilowatt
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.kilowatt.data.Inquilino
+import com.example.kilowatt.data.InquilinoConMedidor
 import com.example.kilowatt.databinding.ItemInquilinoBinding
 
 class InquilinoAdapter(
-    private var lista: List<Inquilino> = emptyList()
+    private val onItemClick: (InquilinoConMedidor) -> Unit
 ) : RecyclerView.Adapter<InquilinoAdapter.ViewHolder>() {
+
+    private var lista = listOf<InquilinoConMedidor>()
 
     class ViewHolder(val binding: ItemInquilinoBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -21,14 +23,22 @@ class InquilinoAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = lista[position]
-        holder.binding.tvNombre.text = item.nombreCompleto
-        holder.binding.tvEspacio.text = "Inquilino registrado"
-        holder.binding.tvTelefono.text = if (item.telefonoWhatsapp.isNotEmpty()) "📱 ${item.telefonoWhatsapp}" else ""
+
+        val nombre = item.inquilino?.nombreCompleto ?: item.submedidor.nombreEspacio
+        val telefono = item.inquilino?.telefonoWhatsapp ?: "N/A"
+
+        holder.binding.tvNombre.text = nombre
+        holder.binding.tvEspacio.text = if (item.submedidor.esAreaComun) "🏢 Área Común" else item.submedidor.nombreEspacio
+        holder.binding.tvTelefono.text = telefono
+
+        holder.itemView.setOnClickListener {
+            onItemClick(item)
+        }
     }
 
-    override fun getItemCount(): Int = lista.size
+    override fun getItemCount() = lista.size
 
-    fun actualizarLista(nuevaLista: List<Inquilino>) {
+    fun actualizarLista(nuevaLista: List<InquilinoConMedidor>) {
         lista = nuevaLista
         notifyDataSetChanged()
     }

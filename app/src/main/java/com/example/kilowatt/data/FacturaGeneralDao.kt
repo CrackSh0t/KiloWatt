@@ -12,4 +12,7 @@ interface FacturaGeneralDao {
 
     @Query("SELECT * FROM factura_general WHERE mesPeriodo = :mes LIMIT 1")
     suspend fun obtenerFacturaPorMes(mes: String): FacturaGeneral?
+
+    @Query("SELECT * FROM factura_general ORDER BY mesPeriodo DESC")
+    fun obtenerTodasLasFacturas(): kotlinx.coroutines.flow.Flow<List<FacturaGeneral>>
 }

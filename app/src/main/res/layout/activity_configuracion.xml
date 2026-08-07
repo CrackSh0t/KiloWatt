@@ -1,44 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:spacing="12dp">
+        android:padding="16dp">
 
-        <RelativeLayout
+        <!-- Header -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:layout_marginBottom="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVolver"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_revert"
+                app:iconTint="#673AB7" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚙️ Configuración"
-                android:textSize="22sp"
+                android:text="⚙️ Inquilinos y Medidores"
+                android:textSize="20sp"
                 android:textStyle="bold" />
+        </LinearLayout>
 
-            <Button
-                android:id="@+id/btnIrALecturas"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:text="Ver Lecturas ➡️" />
-        </RelativeLayout>
-
-        <!-- Formulario Inquilino -->
+        <!-- Formulario -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            android:layout_marginBottom="16dp">
+            app:cardElevation="3dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -52,57 +56,88 @@
                     android:text="Registrar Nuevo Inquilino"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
+                    android:layout_marginBottom="12dp" />
 
-                <EditText
-                    android:id="@+id/etNombreInquilino"
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Nombre completo (ej. Juan Pérez)"
-                    android:inputType="textPersonName" />
+                    android:layout_marginBottom="10dp">
 
-                <EditText
-                    android:id="@+id/etTelefono"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etNombreInquilino"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPersonName" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="WhatsApp (ej. 987654321)"
-                    android:inputType="phone" />
+                    android:layout_marginBottom="10dp">
 
-                <EditText
-                    android:id="@+id/etNombreEspacio"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etTelefonoWhatsapp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="phone" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Espacio asignado (ej. Depa 101 / Cuarto 2)"
-                    android:inputType="text" />
+                    android:layout_marginBottom="10dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etNombreEspacio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <CheckBox
                     android:id="@+id/cbEsAreaComun"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="¿Es un Submedidor de Área Común? (Baños, pasadizo)" />
+                    android:text="¿Es un Submedidor de Área Común?\n(Baños, pasadizo, bomba de agua)"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="12dp" />
 
-                <Button
+                <CheckBox
+                    android:id="@+id/cbPagaAreaComun"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="¿Este espacio paga cuota de área común?"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="12dp" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnGuardarInquilino"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Guardar Inquilino y Medidor"
-                    android:layout_marginTop="8dp"/>
+                    app:cornerRadius="8dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-        <!-- Lista de Inquilinos Registrados -->
+
+        <!-- Título -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Inquilinos Registrados"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp" />
 
+        <!-- Lista -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvInquilinos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false"/>
+            android:nestedScrollingEnabled="false" />
+
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

@@ -11,5 +11,5 @@ interface LecturaDao {
     suspend fun insertarLectura(lectura: Lectura)
 
     @Query("SELECT * FROM lecturas WHERE mesPeriodo = :mes")
-    suspend fun obtenerLecturasPorMes(mes: String): List<Lectura>
+    fun obtenerLecturasPorMes(mes: String): kotlinx.coroutines.flow.Flow<List<Lectura>>
 }

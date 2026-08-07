@@ -13,4 +13,7 @@ interface SubmedidorDao {
 
     @Query("SELECT * FROM submedidores")
     fun obtenerTodosLosSubmedidores(): Flow<List<Submedidor>>
+
+    @androidx.room.Delete
+    suspend fun eliminarSubmedidor(submedidor: Submedidor)
 }

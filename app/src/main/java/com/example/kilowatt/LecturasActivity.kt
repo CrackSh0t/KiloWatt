@@ -1,5 +1,6 @@
 package com.example.kilowatt
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -22,6 +23,11 @@ class LecturasActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityLecturasBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // Mostrar flecha de regreso en la barra superior
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "Registrador de Lecturas"
+
+        database = AppDatabase.getDatabase(this)
 
         database = AppDatabase.getDatabase(this)
 
@@ -34,8 +40,16 @@ class LecturasActivity : AppCompatActivity() {
         binding.btnCalcularYGuardar.setOnClickListener {
             calcularYGuardarLectura()
         }
-    }
 
+        binding.btnVerResumen.setOnClickListener {
+            val intent = Intent(this, ResumenCobrosActivity::class.java)
+            startActivity(intent)
+        }
+    }
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
+    }
     private fun cargarSubmedidoresEnSpinner() {
         lifecycleScope.launch {
             database.submedidorDao().obtenerTodosLosSubmedidores().collect { lista ->

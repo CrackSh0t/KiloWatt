@@ -13,4 +13,7 @@ interface InquilinoDao {
 
     @Query("SELECT * FROM inquilinos ORDER BY nombreCompleto ASC")
     fun obtenerTodosLosInquilinos(): Flow<List<Inquilino>>
+
+    @androidx.room.Delete
+    suspend fun eliminarInquilino(inquilino: Inquilino)
 }
