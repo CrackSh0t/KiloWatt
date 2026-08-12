@@ -11,6 +11,7 @@ import com.example.kilowatt.data.FacturaGeneral
 import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.Submedidor
 import com.example.kilowatt.databinding.ActivityLecturasBinding
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class LecturasActivity : AppCompatActivity() {
@@ -113,16 +114,21 @@ class LecturasActivity : AppCompatActivity() {
 
             if (facturaMes == null) {
                 Toast.makeText(this@LecturasActivity, "Primero debes guardar el Recibo Base de este mes", Toast.LENGTH_LONG).show()
-                return@launch // <--- Al poner return@launch, Kotlin ya sabe que no es nulo abajo
+                return@launch
             }
 
-            // 2. Fórmulas KiloWatt
+            // 2. Buscamos si ya existe una lectura para este submedidor en este mes
+            val lecturasDelMes = database.lecturaDao().obtenerLecturasPorMes(mes).first()
+            val lecturaExistente = lecturasDelMes.find { it.idSubmedidor == submedidorSeleccionado.idSubmedidor }
+
+            // 3. Fórmulas KiloWatt
             val consumoKwh = lecAct - lecAnt
             val precioPorKwh = facturaMes.montoTotalSoles / facturaMes.kwhTotalesRecibo
             val montoPagar = consumoKwh * precioPorKwh
 
-            // 3. Objeto Lectura
+            // 4. Objeto Lectura (Si ya existía, usamos su idLectura para SOBRESCRIBIR)
             val nuevaLectura = Lectura(
+                idLectura = lecturaExistente?.idLectura ?: 0, // 👈 Conserva el ID si ya existe
                 idSubmedidor = submedidorSeleccionado.idSubmedidor,
                 mesPeriodo = mes,
                 lecturaAnterior = lecAnt,
@@ -133,10 +139,15 @@ class LecturasActivity : AppCompatActivity() {
 
             database.lecturaDao().insertarLectura(nuevaLectura)
 
-            val mensaje = "Consumo: %.1f kWh | Total a pagar: S/ %.2f".format(consumoKwh, montoPagar)
+            val mensaje = if (lecturaExistente != null) {
+                "¡Lectura actualizada! Consumo: %.1f kWh | Total: S/ %.2f".format(consumoKwh, montoPagar)
+            } else {
+                "Consumo: %.1f kWh | Total a pagar: S/ %.2f".format(consumoKwh, montoPagar)
+            }
+
             Toast.makeText(this@LecturasActivity, mensaje, Toast.LENGTH_LONG).show()
 
-            // Limpiar campos sin error
+            // Limpiar campos
             binding.etLecturaAnterior.setText("")
             binding.etLecturaActual.setText("")
         }

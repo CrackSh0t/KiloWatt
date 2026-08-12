@@ -74,32 +74,43 @@ class ResumenCobrosActivity : AppCompatActivity() {
             val factura = database.facturaGeneralDao().obtenerFacturaPorMes(mes)
 
             if (factura != null) {
-                val precioKwh = factura.montoTotalSoles / factura.kwhTotalesRecibo
-
-                binding.tvReciboTotalGlobal.text = "S/ %.2f".format(factura.montoTotalSoles)
-                binding.tvKwhTotalesGlobal.text = "%.0f kWh".format(factura.kwhTotalesRecibo)
-                binding.tvPrecioKwhGlobal.text = "S/ %.2f".format(precioKwh)
-
                 val lecturas = database.lecturaDao().obtenerLecturasPorMes(mes).first()
                 val submedidores = database.submedidorDao().obtenerTodosLosSubmedidores().first()
                 val inquilinos = database.inquilinoDao().obtenerTodosLosInquilinos().first()
 
-                // 1. Separar lecturas de áreas comunes y lecturas particulares
-                val lecturasAreaComun = lecturas.filter { lectura ->
+                // Eliminar duplicados si un submedidor tiene más de una lectura en el mismo mes
+                val lecturasUnicas = lecturas.distinctBy { it.idSubmedidor }
+
+                // 1. Obtener la suma TOTAL de kWh medidos en submedidores únicos
+                val totalKwhSubmedidores = lecturasUnicas.sumOf { it.consumoKwh }
+
+                // 2. Calcular el Precio Efectivo por kWh
+                val precioKwhEfectivo = if (totalKwhSubmedidores > 0) {
+                    factura.montoTotalSoles / totalKwhSubmedidores
+                } else {
+                    0.0
+                }
+
+                binding.tvReciboTotalGlobal.text = "S/ %.2f".format(factura.montoTotalSoles)
+                binding.tvKwhTotalesGlobal.text = "%.0f kWh".format(totalKwhSubmedidores)
+                binding.tvPrecioKwhGlobal.text = "S/ %.2f".format(precioKwhEfectivo)
+
+                // 3. Separar lecturas únicas
+                val lecturasAreaComun = lecturasUnicas.filter { lectura ->
                     val sub = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
                     sub?.esAreaComun == true
                 }
 
-                val lecturasParticulares = lecturas.filter { lectura ->
+                val lecturasParticulares = lecturasUnicas.filter { lectura ->
                     val sub = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
                     sub?.esAreaComun == false
                 }
 
-                // 2. Calcular el costo total acumulado de todas las áreas comunes
+                // 4. Calcular el monto en Soles del Área Común
                 val totalKwhAreaComun = lecturasAreaComun.sumOf { it.consumoKwh }
-                val totalSolesAreaComun = totalKwhAreaComun * precioKwh
+                val totalSolesAreaComun = totalKwhAreaComun * precioKwhEfectivo
 
-                // 3. Contar SOLO los espacios configurados para pagar cuota común (evita división por cero)
+                // 5. Dividir cuota de área común solo entre los pagadores activos
                 val cantidadPagadores = lecturasParticulares.count { lectura ->
                     val sub = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
                     sub?.pagaAreaComun == true
@@ -107,14 +118,12 @@ class ResumenCobrosActivity : AppCompatActivity() {
 
                 val cuotaAreaComunPorInquilino = totalSolesAreaComun / cantidadPagadores
 
-                // 4. Construir la lista asignando la cuota solo a los que les corresponde
+                // 6. Generar lista de cobro limpia
                 val listaDetalle = lecturasParticulares.map { lectura ->
                     val submedidor = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
                     val inquilino = inquilinos.find { it.idInquilino == submedidor?.idInquilinoTitular }
 
-                    val consumoPropioSoles = lectura.consumoKwh * precioKwh
-
-                    // Si el espacio paga área común recibe la cuota, de lo contrario S/ 0.00
+                    val consumoPropioSoles = lectura.consumoKwh * precioKwhEfectivo
                     val cuotaAplicada = if (submedidor?.pagaAreaComun == true) cuotaAreaComunPorInquilino else 0.0
                     val totalFinalPagar = consumoPropioSoles + cuotaAplicada
 
@@ -126,7 +135,7 @@ class ResumenCobrosActivity : AppCompatActivity() {
                         lecturaAnterior = lectura.lecturaAnterior,
                         lecturaActual = lectura.lecturaActual,
                         consumoKwh = lectura.consumoKwh,
-                        precioKwh = precioKwh,
+                        precioKwh = precioKwhEfectivo,
                         montoAreaComunSoles = cuotaAplicada,
                         montoPagarSoles = totalFinalPagar
                     )

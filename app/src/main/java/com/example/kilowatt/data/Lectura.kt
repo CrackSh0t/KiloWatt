@@ -1,9 +1,12 @@
 package com.example.kilowatt.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "lecturas")
+@Entity(
+    tableName = "lecturas",
+    indices = [Index(value = ["idSubmedidor", "mesPeriodo"], unique = true)])
 data class Lectura(
     @PrimaryKey(autoGenerate = true)
     val idLectura: Int = 0,

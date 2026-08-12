@@ -1,5 +1,6 @@
-# Tareas de Corrección de Eliminación
+# Tareas: Implementación de Lógica "Cierre de Caja" Exacta
 
-- `[x]` Agregar función de eliminación en `InquilinoDao.kt`.
-- `[x]` Agregar función de eliminación en `SubmedidorDao.kt`.
-- `[x]` Verificar compilación del proyecto.
+- `[x]` Modificar `ResumenCobrosActivity.kt` para procesar todos los submedidores.
+- `[x]` Validar que la distribución del monto común incluya a inquilinos sin lecturas.
+- `[x]` Verificar precisión matemática de la suma total.
+- `[x]` Actualizar walkthrough.

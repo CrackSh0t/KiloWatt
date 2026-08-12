@@ -147,6 +147,7 @@ class ConfiguracionActivity : AppCompatActivity() {
                     nombreEspacio = nuevoEspacio,
                     pagaAreaComun = nuevoPagaComun
                 )
+
                 database.submedidorDao().insertarSubmedidor(subActualizado)
 
                 if (item.inquilino != null) {
