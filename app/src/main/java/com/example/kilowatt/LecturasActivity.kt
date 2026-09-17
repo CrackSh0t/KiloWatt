@@ -1,6 +1,6 @@
 package com.example.kilowatt
 
-import android.content.Intent
+//import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -42,10 +42,6 @@ class LecturasActivity : AppCompatActivity() {
             calcularYGuardarLectura()
         }
 
-        binding.btnVerResumen.setOnClickListener {
-            val intent = Intent(this, ResumenCobrosActivity::class.java)
-            startActivity(intent)
-        }
     }
     override fun onSupportNavigateUp(): Boolean {
         finish()
