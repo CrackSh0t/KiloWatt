@@ -7,13 +7,30 @@
     android:padding="16dp">
 
     <!-- Título de la vista -->
-    <TextView
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="📊 Resumen de Cobros"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:text="📊 Resumen de Cobros"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportarReportePdf"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="Exportar Reporte 📄"
+            android:textColor="#673AB7"
+            app:icon="@android:drawable/ic_menu_save"
+            app:iconTint="#673AB7" />
+    </RelativeLayout>
 
     <!-- Selector de Mes / Periodo -->
     <LinearLayout

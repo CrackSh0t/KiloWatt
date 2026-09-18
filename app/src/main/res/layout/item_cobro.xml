@@ -167,15 +167,31 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEnviarWhatsapp"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:text="WhatsApp 📲"
-                app:backgroundTint="#25D366"
-                app:cornerRadius="8dp" />
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportarPdf"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="PDF 📄"
+                    app:cornerRadius="8dp"
+                    app:strokeColor="#673AB7" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEnviarWhatsapp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WhatsApp 📲"
+                    app:backgroundTint="#25D366"
+                    app:cornerRadius="8dp" />
+            </LinearLayout>
         </RelativeLayout>
 
     </LinearLayout>

@@ -12,6 +12,7 @@ import com.example.kilowatt.data.InquilinoConMedidor
 import com.example.kilowatt.data.Submedidor
 import com.example.kilowatt.databinding.ActivityConfiguracionBinding
 import com.example.kilowatt.databinding.DialogEditarInquilinoBinding
+import com.example.kilowatt.util.SettingsManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ class ConfiguracionActivity : AppCompatActivity() {
     private lateinit var binding: ActivityConfiguracionBinding
     private lateinit var adapter: InquilinoAdapter
     private lateinit var database: AppDatabase
+    private lateinit var settingsManager: SettingsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,9 +30,11 @@ class ConfiguracionActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         database = AppDatabase.getDatabase(this)
+        settingsManager = SettingsManager(this)
 
         setupRecyclerView()
         observarInquilinos()
+        cargarDatosPropietario()
 
         binding.btnVolver.setOnClickListener {
             finish()
@@ -39,6 +43,33 @@ class ConfiguracionActivity : AppCompatActivity() {
         binding.btnGuardarInquilino.setOnClickListener {
             guardarDatos()
         }
+
+        binding.btnGuardarDatosPropietario.setOnClickListener {
+            guardarDatosPropietario()
+        }
+    }
+
+    private fun cargarDatosPropietario() {
+        binding.etNombrePropietario.setText(settingsManager.nombrePropietario)
+        binding.etNumeroPago.setText(settingsManager.numeroPago)
+        binding.etDiaLimitePago.setText(settingsManager.diaLimitePago.toString())
+    }
+
+    private fun guardarDatosPropietario() {
+        val nombre = binding.etNombrePropietario.text.toString().trim()
+        val numero = binding.etNumeroPago.text.toString().trim()
+        val diaStr = binding.etDiaLimitePago.text.toString().trim()
+
+        if (nombre.isEmpty() || numero.isEmpty() || diaStr.isEmpty()) {
+            Toast.makeText(this, "Por favor completa los datos del propietario", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        settingsManager.nombrePropietario = nombre
+        settingsManager.numeroPago = numero
+        settingsManager.diaLimitePago = diaStr.toIntOrNull() ?: 5
+
+        Toast.makeText(this, "Datos del propietario guardados", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupRecyclerView() {

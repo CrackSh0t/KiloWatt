@@ -1,15 +1,20 @@
 package com.example.kilowatt
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.kilowatt.data.AppDatabase
 import com.example.kilowatt.data.DetalleCobro
+import com.example.kilowatt.data.FacturaGeneral
 import com.example.kilowatt.databinding.ActivityResumenCobrosBinding
+import com.example.kilowatt.util.PdfGenerator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -18,6 +23,9 @@ class ResumenCobrosActivity : AppCompatActivity() {
     private lateinit var binding: ActivityResumenCobrosBinding
     private lateinit var database: AppDatabase
     private lateinit var adapter: CobroAdapter
+    private var mesActualSeleccionado: String? = null
+    private var facturaActual: FacturaGeneral? = null
+    private var detallesActuales: List<DetalleCobro> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +39,10 @@ class ResumenCobrosActivity : AppCompatActivity() {
 
         setupRecyclerView()
         cargarMesesEnSpinner()
+
+        binding.btnExportarReportePdf.setOnClickListener {
+            exportarReporteGeneral()
+        }
     }
     override fun onSupportNavigateUp(): Boolean {
         finish()
@@ -70,8 +82,10 @@ class ResumenCobrosActivity : AppCompatActivity() {
     }
 
     private fun cargarDatosDelMes(mes: String) {
+        mesActualSeleccionado = mes
         lifecycleScope.launch {
             val factura = database.facturaGeneralDao().obtenerFacturaPorMes(mes)
+            facturaActual = factura
 
             if (factura != null) {
                 val lecturas = database.lecturaDao().obtenerLecturasPorMes(mes).first()
@@ -141,8 +155,33 @@ class ResumenCobrosActivity : AppCompatActivity() {
                     )
                 }
 
+                detallesActuales = listaDetalle
                 adapter.actualizarLista(listaDetalle)
             }
+        }
+    }
+
+    private fun exportarReporteGeneral() {
+        val mes = mesActualSeleccionado ?: return
+        val factura = facturaActual ?: return
+        
+        if (detallesActuales.isEmpty()) {
+            Toast.makeText(this, "No hay datos para exportar", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val generator = PdfGenerator(this)
+        val file = generator.generarReporteGeneral(mes, factura, detallesActuales)
+
+        if (file != null && file.exists()) {
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.type = "application/pdf"
+            intent.putExtra(Intent.EXTRA_STREAM, uri)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            startActivity(Intent.createChooser(intent, "Compartir Reporte General PDF"))
+        } else {
+            Toast.makeText(this, "Error al generar el reporte", Toast.LENGTH_SHORT).show()
         }
     }
 }
