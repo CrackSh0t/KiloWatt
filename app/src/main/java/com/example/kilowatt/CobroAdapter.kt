@@ -2,6 +2,7 @@ package com.example.kilowatt
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -35,6 +36,17 @@ class CobroAdapter(
         holder.binding.tvLecturaActual.text = "%.1f kWh".format(item.lecturaActual)
         holder.binding.tvConsumoKwh.text = "%.1f kWh".format(item.consumoKwh)
         holder.binding.tvMontoPagarSoles.text = "S/ %.2f".format(item.montoPagarSoles)
+
+        // Estado: Si no hay lectura, advertir
+        if (item.lecturaAnterior == 0.0 && item.lecturaActual == 0.0 && item.consumoKwh == 0.0) {
+            holder.binding.tvEstadoPago.text = "Sin Lectura ⚠️"
+            holder.binding.tvEstadoPago.setBackgroundColor(Color.parseColor("#33F44336"))
+            holder.binding.tvEstadoPago.setTextColor(Color.parseColor("#D32F2F"))
+        } else {
+            holder.binding.tvEstadoPago.text = "Pendiente 🟡"
+            holder.binding.tvEstadoPago.setBackgroundColor(Color.parseColor("#33FFC107"))
+            holder.binding.tvEstadoPago.setTextColor(Color.parseColor("#FF8F00"))
+        }
 
         // Botón WhatsApp
         holder.binding.btnEnviarWhatsapp.setOnClickListener {

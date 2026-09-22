@@ -115,40 +115,36 @@ class ResumenCobrosActivity : AppCompatActivity() {
                     sub?.esAreaComun == true
                 }
 
-                val lecturasParticulares = lecturasUnicas.filter { lectura ->
-                    val sub = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
-                    sub?.esAreaComun == false
-                }
-
                 // 4. Calcular el monto en Soles del Área Común
                 val totalKwhAreaComun = lecturasAreaComun.sumOf { it.consumoKwh }
                 val totalSolesAreaComun = totalKwhAreaComun * precioKwhEfectivo
 
-                // 5. Dividir cuota de área común solo entre los pagadores activos
-                val cantidadPagadores = lecturasParticulares.count { lectura ->
-                    val sub = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
-                    sub?.pagaAreaComun == true
-                }.coerceAtLeast(1)
+                // 5. Dividir cuota de área común entre TODOS los que deben pagar, tengan lectura o no
+                val submedidoresQuePaganComun = submedidores.filter { !it.esAreaComun && it.pagaAreaComun }
+                val cantidadPagadores = submedidoresQuePaganComun.size.coerceAtLeast(1)
 
                 val cuotaAreaComunPorInquilino = totalSolesAreaComun / cantidadPagadores
 
-                // 6. Generar lista de cobro limpia
-                val listaDetalle = lecturasParticulares.map { lectura ->
-                    val submedidor = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
-                    val inquilino = inquilinos.find { it.idInquilino == submedidor?.idInquilinoTitular }
+                // 6. Generar lista de cobro incluyendo a todos los submedidores particulares
+                val submedidoresParticulares = submedidores.filter { !it.esAreaComun }
+                
+                val listaDetalle = submedidoresParticulares.map { submedidor ->
+                    val lectura = lecturasUnicas.find { it.idSubmedidor == submedidor.idSubmedidor }
+                    val inquilino = inquilinos.find { it.idInquilino == submedidor.idInquilinoTitular }
 
-                    val consumoPropioSoles = lectura.consumoKwh * precioKwhEfectivo
-                    val cuotaAplicada = if (submedidor?.pagaAreaComun == true) cuotaAreaComunPorInquilino else 0.0
+                    val consumoKwh = lectura?.consumoKwh ?: 0.0
+                    val consumoPropioSoles = consumoKwh * precioKwhEfectivo
+                    val cuotaAplicada = if (submedidor.pagaAreaComun) cuotaAreaComunPorInquilino else 0.0
                     val totalFinalPagar = consumoPropioSoles + cuotaAplicada
 
                     DetalleCobro(
-                        nombreInquilino = inquilino?.nombreCompleto ?: submedidor?.nombreEspacio ?: "Inquilino",
+                        nombreInquilino = inquilino?.nombreCompleto ?: submedidor.nombreEspacio,
                         telefonoWhatsapp = inquilino?.telefonoWhatsapp ?: "",
-                        nombreEspacio = submedidor?.nombreEspacio ?: "Espacio",
+                        nombreEspacio = submedidor.nombreEspacio,
                         mesPeriodo = mes,
-                        lecturaAnterior = lectura.lecturaAnterior,
-                        lecturaActual = lectura.lecturaActual,
-                        consumoKwh = lectura.consumoKwh,
+                        lecturaAnterior = lectura?.lecturaAnterior ?: 0.0,
+                        lecturaActual = lectura?.lecturaActual ?: 0.0,
+                        consumoKwh = consumoKwh,
                         precioKwh = precioKwhEfectivo,
                         montoAreaComunSoles = cuotaAplicada,
                         montoPagarSoles = totalFinalPagar

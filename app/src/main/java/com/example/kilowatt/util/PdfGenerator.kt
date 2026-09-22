@@ -150,22 +150,47 @@ class PdfGenerator(private val context: Context) {
         paint.isFakeBoldText = true
         canvas.drawText("Distribución de Consumo", 20f, 160f, paint)
         
-        val colors = intArrayOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.CYAN, Color.MAGENTA)
+        val colors = intArrayOf(
+            Color.parseColor("#FF5252"), // Rojo
+            Color.parseColor("#4CAF50"), // Verde
+            Color.parseColor("#2196F3"), // Azul
+            Color.parseColor("#FFC107"), // Ámbar
+            Color.parseColor("#9C27B0"), // Púrpura
+            Color.parseColor("#00BCD4"), // Cian
+            Color.parseColor("#FF9800"), // Naranja
+            Color.parseColor("#795548"), // Marrón
+            Color.parseColor("#607D8B"), // Gris Azulado
+            Color.parseColor("#E91E63")  // Rosa
+        )
         var startAngle = 0f
-        val rectF = RectF(110f, 180f, 310f, 380f)
+        // Gráfico más pequeño y más a la izquierda para dar máximo espacio a la leyenda
+        val rectF = RectF(30f, 180f, 190f, 340f)
         
         if (totalKwh > 0) {
-            detalles.forEachIndexed { index, det ->
+            // Filtrar solo los que tienen consumo para no saturar la leyenda
+            val detallesConConsumo = detalles.filter { it.consumoKwh > 0 }
+            
+            detallesConConsumo.forEachIndexed { index, det ->
                 val sweep = (det.consumoKwh / totalKwh * 360).toFloat()
+                
                 paint.color = colors[index % colors.size]
                 paint.style = Paint.Style.FILL
                 canvas.drawArc(rectF, startAngle, sweep, true, paint)
                 
-                // Leyenda pequeña
-                paint.textSize = 8f
-                canvas.drawRect(330f, 180f + (index * 15), 340f, 190f + (index * 15), paint)
+                // Leyenda a la derecha del gráfico con más margen
+                val xLegend = 210f
+                val yLegend = 190f + (index * 18) // Reducir interlineado ligeramente
+                
+                paint.color = colors[index % colors.size]
+                canvas.drawRect(xLegend, yLegend - 7, xLegend + 8, yLegend + 1, paint)
+                
                 paint.color = Color.BLACK
-                canvas.drawText("${det.nombreEspacio}: ${det.consumoKwh.toInt()}kWh", 345f, 190f + (index * 15), paint)
+                paint.textSize = if (detallesConConsumo.size > 8) 7.5f else 8.5f
+                paint.isFakeBoldText = false
+                
+                // Limitar el nombre del espacio para que no se salga del PDF
+                val nombreCorto = if (det.nombreEspacio.length > 20) det.nombreEspacio.take(18) + ".." else det.nombreEspacio
+                canvas.drawText("$nombreCorto: ${det.consumoKwh.toInt()} kWh", xLegend + 12, yLegend, paint)
                 
                 startAngle += sweep
             }
@@ -175,11 +200,11 @@ class PdfGenerator(private val context: Context) {
         paint.style = Paint.Style.FILL
         paint.textSize = 12f
         paint.isFakeBoldText = true
-        canvas.drawText("Detalle Consolidado", 20f, 420f, paint)
+        canvas.drawText("Detalle Consolidado", 20f, 380f, paint)
         
-        paint.textSize = 9f
+        paint.textSize = if (detalles.size > 8) 8f else 9f
         paint.isFakeBoldText = false
-        var yPos = 445f
+        var yPos = 405f
         // Cabecera Tabla
         paint.color = Color.parseColor("#EEEEEE")
         canvas.drawRect(20f, yPos - 12, 400f, yPos + 3, paint)
@@ -188,14 +213,14 @@ class PdfGenerator(private val context: Context) {
         canvas.drawText("kWh", 220f, yPos, paint)
         canvas.drawText("Área C.", 280f, yPos, paint)
         canvas.drawText("Total", 350f, yPos, paint)
-        yPos += 20f
+        yPos += 18f
 
         detalles.forEach { det ->
             canvas.drawText(det.nombreInquilino.take(25), 25f, yPos, paint)
             canvas.drawText("${"%.1f".format(det.consumoKwh)}", 220f, yPos, paint)
             canvas.drawText("S/ ${"%.2f".format(det.montoAreaComunSoles)}", 280f, yPos, paint)
             canvas.drawText("S/ ${"%.2f".format(det.montoPagarSoles)}", 350f, yPos, paint)
-            yPos += 15f
+            yPos += if (detalles.size > 8) 12f else 15f
         }
 
         document.finishPage(page)
