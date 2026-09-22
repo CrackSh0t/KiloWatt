@@ -30,7 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
-            android:text="Exportar Reporte 📄"
+            android:text="Reporte 📄"
             android:textColor="#673AB7"
             app:icon="@android:drawable/ic_menu_save"
             app:iconTint="#673AB7" />
