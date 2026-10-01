@@ -6,6 +6,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import com.example.kilowatt.data.FacturaGeneral
 import com.example.kilowatt.data.InquilinoRepository
@@ -13,6 +14,8 @@ import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.LecturaRepository
 import com.example.kilowatt.data.Submedidor
 import com.example.kilowatt.databinding.ActivityLecturasBinding
+import com.example.kilowatt.util.CobroCalculator
+import com.example.kilowatt.util.ValidacionLecturaResult
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -24,6 +27,8 @@ class LecturasActivity : AppCompatActivity() {
     private val inquilinoRepository = InquilinoRepository()
 
     private var listaSubmedidores: List<Submedidor> = emptyList()
+    private var spinnerAdapter: ArrayAdapter<String>? = null
+    private val nombresSubmedidores = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,14 +38,11 @@ class LecturasActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Registrador de Lecturas"
 
+        setupSpinner()
         cargarSubmedidoresEnSpinner()
 
-        binding.spSubmedidores.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                cargarLecturaPreviaDelSubmedidor()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        binding.etMesPeriodo.addTextChangedListener {
+            cargarLecturaPreviaDelSubmedidor()
         }
 
         binding.btnGuardarFactura.setOnClickListener {
@@ -57,17 +59,37 @@ class LecturasActivity : AppCompatActivity() {
         return true
     }
 
+    private fun setupSpinner() {
+        spinnerAdapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            nombresSubmedidores
+        )
+        binding.spSubmedidores.adapter = spinnerAdapter
+
+        binding.spSubmedidores.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                cargarLecturaPreviaDelSubmedidor()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
     private fun cargarSubmedidoresEnSpinner() {
         lifecycleScope.launch {
             inquilinoRepository.obtenerSubmedidoresFlow().collect { lista ->
+                val nuevosNombres = lista.map { it.nombreEspacio }
+                val posActual = binding.spSubmedidores.selectedItemPosition
+
                 listaSubmedidores = lista
-                val nombres = lista.map { it.nombreEspacio }
-                val spinnerAdapter = ArrayAdapter(
-                    this@LecturasActivity,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    nombres,
-                )
-                binding.spSubmedidores.adapter = spinnerAdapter
+                nombresSubmedidores.clear()
+                nombresSubmedidores.addAll(nuevosNombres)
+                spinnerAdapter?.notifyDataSetChanged()
+
+                if (posActual >= 0 && posActual < nuevosNombres.size) {
+                    binding.spSubmedidores.setSelection(posActual)
+                }
             }
         }
     }
@@ -80,15 +102,19 @@ class LecturasActivity : AppCompatActivity() {
         val submedidor = listaSubmedidores[pos]
 
         lifecycleScope.launch {
-            val lecturas = lecturaRepository.obtenerLecturasPorMesFlow(mes).first()
-            val lecturaPrev = lecturas.find { it.idSubmedidor == submedidor.idSubmedidor }
+            try {
+                val lecturas = lecturaRepository.obtenerLecturasPorMesFlow(mes).first()
+                val lecturaPrev = lecturas.find { it.idSubmedidor == submedidor.idSubmedidor }
 
-            if (lecturaPrev != null) {
-                binding.etLecturaAnterior.setText(lecturaPrev.lecturaAnterior.toString())
-                binding.etLecturaActual.setText(lecturaPrev.lecturaActual.toString())
-            } else {
-                binding.etLecturaAnterior.setText("")
-                binding.etLecturaActual.setText("")
+                if (lecturaPrev != null) {
+                    binding.etLecturaAnterior.setText(lecturaPrev.lecturaAnterior.toString())
+                    binding.etLecturaActual.setText(lecturaPrev.lecturaActual.toString())
+                } else {
+                    binding.etLecturaAnterior.setText("")
+                    binding.etLecturaActual.setText("")
+                }
+            } catch (e: Exception) {
+                // Silently handle read errors
             }
         }
     }
@@ -148,8 +174,9 @@ class LecturasActivity : AppCompatActivity() {
         val lecAnt = lecAntStr.toDoubleOrNull() ?: 0.0
         val lecAct = lecActStr.toDoubleOrNull() ?: 0.0
 
-        if (lecAct < lecAnt) {
-            Toast.makeText(this, "La lectura actual no puede ser menor a la anterior", Toast.LENGTH_SHORT).show()
+        val validacion = CobroCalculator.validarLecturas(lecAnt, lecAct)
+        if (validacion is ValidacionLecturaResult.Invalido) {
+            Toast.makeText(this, validacion.mensaje, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -168,9 +195,12 @@ class LecturasActivity : AppCompatActivity() {
                 val lecturasDelMes = lecturaRepository.obtenerLecturasPorMesFlow(mes).first()
                 val lecturaExistente = lecturasDelMes.find { it.idSubmedidor == submedidorSeleccionado.idSubmedidor }
 
-                val consumoKwh = lecAct - lecAnt
-                val precioPorKwh = if (facturaMes.kwhTotalesRecibo > 0) facturaMes.montoTotalSoles / facturaMes.kwhTotalesRecibo else 0.0
-                val montoPagar = consumoKwh * precioPorKwh
+                val (consumoKwh, montoPagar) = CobroCalculator.calcularConsumoYMontoIndividual(
+                    lecturaAnterior = lecAnt,
+                    lecturaActual = lecAct,
+                    montoTotalRecibo = facturaMes.montoTotalSoles,
+                    kwhTotalesRecibo = facturaMes.kwhTotalesRecibo
+                )
 
                 val nuevaLectura = Lectura(
                     idLectura = lecturaExistente?.idLectura.takeIf { !it.isNullOrEmpty() } ?: UUID.randomUUID().toString(),

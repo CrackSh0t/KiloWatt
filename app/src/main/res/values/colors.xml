@@ -2,4 +2,15 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="purple_primary">#673AB7</color>
+    <color name="purple_light">#1F673AB7</color>
+    <color name="green_success">#2E7D32</color>
+    <color name="amber_warning">#FF8F00</color>
+    <color name="amber_warning_bg">#33FFC107</color>
+    <color name="red_error">#D32F2F</color>
+    <color name="red_error_bg">#33F44336</color>
+    <color name="whatsapp_green">#25D366</color>
+    <color name="gray_secondary">#757575</color>
+    <color name="gray_light">#EEEEEE</color>
+    <color name="gray_divider">#1F000000</color>
 </resources>

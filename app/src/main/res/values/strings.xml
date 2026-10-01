@@ -1,3 +1,69 @@
 <resources>
     <string name="app_name">KiloWatt</string>
+    <string name="subtitle_tagline">Gestión Inteligente de Recibos</string>
+    <string name="email_hint">Correo Electrónico</string>
+    <string name="password_hint">Contraseña</string>
+    <string name="btn_login">Iniciar Sesión</string>
+    <string name="btn_register">Crear Cuenta</string>
+
+    <string name="main_header_title">KiloWatt ⚡</string>
+    <string name="main_header_subtitle">Gestión de recibos y submedidores</string>
+    <string name="main_session_prefix">Sesión: %1$s</string>
+    <string name="main_option_lecturas_title">1. Ingresar Lecturas</string>
+    <string name="main_option_lecturas_desc">Registrar recibo del mes y marcadores</string>
+    <string name="main_option_resumen_title">2. Resumen y Cobros</string>
+    <string name="main_option_resumen_desc">Ver desgloses y enviar por WhatsApp</string>
+    <string name="main_option_config_title">3. Inquilinos y Medidores</string>
+    <string name="main_option_config_desc">Añadir espacios, nombres y teléfonos</string>
+
+    <string name="title_lecturas">⚡ Registrador de Lecturas</string>
+    <string name="card_recibo_general_title">1. Recibo General del Mes</string>
+    <string name="hint_mes_periodo">Periodo / Mes (ej. Agosto 2026)</string>
+    <string name="hint_monto_total">Monto Total (S/)</string>
+    <string name="hint_kwh_totales">kWh Totales</string>
+    <string name="btn_guardar_recibo_base">Guardar Recibo Base</string>
+    <string name="card_lectura_medidor_title">2. Ingresar Lectura de Medidor</string>
+    <string name="label_selecciona_medidor">Selecciona el Medidor:</string>
+    <string name="hint_lectura_anterior">Lectura Anterior</string>
+    <string name="hint_lectura_actual">Lectura Actual</string>
+    <string name="btn_calcular_guardar">Calcular Consumo y Guardar</string>
+
+    <string name="title_resumen_cobros">📊 Resumen de Cobros</string>
+    <string name="btn_reporte_pdf">Reporte 📄</string>
+    <string name="label_seleccionar_mes">Seleccionar Mes: </string>
+    <string name="label_recibo_total">Recibo Total</string>
+    <string name="label_kwh_totales">kWh Totales</string>
+    <string name="label_precio_kwh">Precio x kWh</string>
+    <string name="title_detalle_inquilino">Detalle por Inquilino</string>
+    <string name="default_soles">S/ 0.00</string>
+    <string name="default_kwh">0 kWh</string>
+
+    <string name="title_configuracion">⚙️ Inquilinos y Medidores</string>
+    <string name="btn_salir">Salir 🚪</string>
+    <string name="title_datos_propietario">Datos de Cobro (para el PDF)</string>
+    <string name="hint_nombre_titular">Nombre del Titular</string>
+    <string name="hint_numero_pago">Número Yape/Plin</string>
+    <string name="hint_dia_limite">Día Límite de Pago (ej. 5)</string>
+    <string name="btn_guardar_propietario">Guardar Datos Propietario</string>
+    <string name="title_registrar_inquilino">Registrar Nuevo Inquilino</string>
+    <string name="hint_nombre_completo">Nombre completo (ej. Juan Pérez)</string>
+    <string name="hint_whatsapp">WhatsApp (ej. 987654321)</string>
+    <string name="hint_espacio">Espacio asignado (ej. Depa 101 / Cuarto 2)</string>
+    <string name="chk_es_area_comun">¿Es un Submedidor de Área Común?\n(Baños, pasadizo, bomba de agua)</string>
+    <string name="chk_paga_area_comun">¿Este espacio paga cuota de área común?</string>
+    <string name="btn_guardar_inquilino">Guardar Inquilino y Medidor</string>
+    <string name="title_inquilinos_registrados">Inquilinos Registrados</string>
+
+    <string name="title_editar_inquilino">✏️ Editar Inquilino / Medidor</string>
+    <string name="btn_eliminar">Eliminar</string>
+    <string name="btn_guardar_cambios">Guardar Cambios</string>
+
+    <string name="label_total_pagar">Total a Pagar:</string>
+    <string name="btn_pdf">PDF 📄</string>
+    <string name="btn_whatsapp">WhatsApp 📲</string>
+    <string name="label_lectura_ant_corta">L. Anterior</string>
+    <string name="label_lectura_act_corta">L. Actual</string>
+    <string name="label_consumo_total">Consumo Total</string>
+    <string name="estado_pendiente">Pendiente 🟡</string>
+    <string name="estado_sin_lectura">Sin Lectura ⚠️</string>
 </resources>

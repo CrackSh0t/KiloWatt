@@ -9,6 +9,8 @@ import android.graphics.pdf.PdfDocument
 import android.os.Environment
 import com.example.kilowatt.data.DetalleCobro
 import com.example.kilowatt.data.FacturaGeneral
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -19,7 +21,7 @@ class PdfGenerator(private val context: Context) {
 
     private val settingsManager = SettingsManager(context)
 
-    fun generarComprobanteIndividual(detalle: DetalleCobro): File? {
+    suspend fun generarComprobanteIndividual(detalle: DetalleCobro): File? = withContext(Dispatchers.IO) {
         // Formato: 148 x 105 mm (aprox) -> A6 horizontal o similar
         // En puntos (1/72 inch): 148mm = 419 pts, 105mm = 297 pts
         val document = PdfDocument()
@@ -105,17 +107,19 @@ class PdfGenerator(private val context: Context) {
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
 
         try {
-            document.writeTo(FileOutputStream(file))
-            document.close()
-            return file
+            FileOutputStream(file).use { out ->
+                document.writeTo(out)
+            }
+            file
         } catch (e: Exception) {
             e.printStackTrace()
+            null
+        } finally {
             document.close()
-            return null
         }
     }
 
-    fun generarReporteGeneral(mes: String, factura: FacturaGeneral, detalles: List<DetalleCobro>): File? {
+    suspend fun generarReporteGeneral(mes: String, factura: FacturaGeneral, detalles: List<DetalleCobro>): File? = withContext(Dispatchers.IO) {
         val document = PdfDocument()
         // A5 Vertical: 148mm x 210mm -> 420 x 595 pts
         val pageInfo = PdfDocument.PageInfo.Builder(420, 600, 1).create()
@@ -169,6 +173,7 @@ class PdfGenerator(private val context: Context) {
         if (totalKwh > 0) {
             // Filtrar solo los que tienen consumo para no saturar la leyenda
             val detallesConConsumo = detalles.filter { it.consumoKwh > 0 }
+            val rowHeight = if (detallesConConsumo.size > 6) 20f else 23f
             
             detallesConConsumo.forEachIndexed { index, det ->
                 val sweep = (det.consumoKwh / totalKwh * 360).toFloat()
@@ -177,20 +182,39 @@ class PdfGenerator(private val context: Context) {
                 paint.style = Paint.Style.FILL
                 canvas.drawArc(rectF, startAngle, sweep, true, paint)
                 
-                // Leyenda a la derecha del gráfico con más margen
+                // Leyenda a la derecha del gráfico
                 val xLegend = 210f
-                val yLegend = 190f + (index * 18) // Reducir interlineado ligeramente
+                val yLegend = 188f + (index * rowHeight)
                 
                 paint.color = colors[index % colors.size]
-                canvas.drawRect(xLegend, yLegend - 7, xLegend + 8, yLegend + 1, paint)
+                canvas.drawRect(xLegend, yLegend - 7f, xLegend + 8f, yLegend + 1f, paint)
                 
+                // Línea 1: Nombre del Inquilino (o Espacio)
                 paint.color = Color.BLACK
-                paint.textSize = if (detallesConConsumo.size > 8) 7.5f else 8.5f
-                paint.isFakeBoldText = false
+                paint.textSize = if (detallesConConsumo.size > 6) 7.5f else 8.5f
+                paint.isFakeBoldText = true
                 
-                // Limitar el nombre del espacio para que no se salga del PDF
-                val nombreCorto = if (det.nombreEspacio.length > 20) det.nombreEspacio.take(18) + ".." else det.nombreEspacio
-                canvas.drawText("$nombreCorto: ${det.consumoKwh.toInt()} kWh", xLegend + 12, yLegend, paint)
+                val tieneInquilinoDiferente = det.nombreInquilino.isNotBlank() && 
+                        !det.nombreInquilino.trim().equals(det.nombreEspacio.trim(), ignoreCase = true)
+                
+                val nombreInquilinoTxt = if (tieneInquilinoDiferente) det.nombreInquilino else det.nombreEspacio
+                val nombreInquilinoCorto = if (nombreInquilinoTxt.length > 20) nombreInquilinoTxt.take(18) + ".." else nombreInquilinoTxt
+                canvas.drawText(nombreInquilinoCorto, xLegend + 12f, yLegend, paint)
+                
+                // Consumo a la derecha con 2 decimales
+                paint.isFakeBoldText = false
+                val consumoTexto = "${"%.2f".format(det.consumoKwh)} kWh"
+                paint.textAlign = Paint.Align.RIGHT
+                canvas.drawText(consumoTexto, 400f, yLegend, paint)
+                paint.textAlign = Paint.Align.LEFT
+                
+                // Línea 2: Área/Espacio con letra más pequeña (debajo del nombre)
+                if (tieneInquilinoDiferente) {
+                    paint.textSize = if (detallesConConsumo.size > 6) 6.5f else 7.5f
+                    paint.color = Color.DKGRAY
+                    val espacioCorto = if (det.nombreEspacio.length > 25) det.nombreEspacio.take(23) + ".." else det.nombreEspacio
+                    canvas.drawText(espacioCorto, xLegend + 12f, yLegend + 9f, paint)
+                }
                 
                 startAngle += sweep
             }
@@ -210,16 +234,21 @@ class PdfGenerator(private val context: Context) {
         canvas.drawRect(20f, yPos - 12, 400f, yPos + 3, paint)
         paint.color = Color.BLACK
         canvas.drawText("Inquilino / Espacio", 25f, yPos, paint)
-        canvas.drawText("kWh", 220f, yPos, paint)
-        canvas.drawText("Área C.", 280f, yPos, paint)
-        canvas.drawText("Total", 350f, yPos, paint)
+        canvas.drawText("kWh", 245f, yPos, paint)
+        canvas.drawText("Área C.", 295f, yPos, paint)
+        canvas.drawText("Total", 355f, yPos, paint)
         yPos += 18f
 
         detalles.forEach { det ->
-            canvas.drawText(det.nombreInquilino.take(25), 25f, yPos, paint)
-            canvas.drawText("${"%.1f".format(det.consumoKwh)}", 220f, yPos, paint)
-            canvas.drawText("S/ ${"%.2f".format(det.montoAreaComunSoles)}", 280f, yPos, paint)
-            canvas.drawText("S/ ${"%.2f".format(det.montoPagarSoles)}", 350f, yPos, paint)
+            val tieneInquilinoDiferente = det.nombreInquilino.isNotBlank() && 
+                    !det.nombreInquilino.trim().equals(det.nombreEspacio.trim(), ignoreCase = true)
+            val etiqueta = if (tieneInquilinoDiferente) "${det.nombreInquilino} (${det.nombreEspacio})" else det.nombreEspacio
+            val etiquetaTabla = if (etiqueta.length > 36) etiqueta.take(34) + ".." else etiqueta
+            
+            canvas.drawText(etiquetaTabla, 25f, yPos, paint)
+            canvas.drawText("${"%.1f".format(det.consumoKwh)}", 245f, yPos, paint)
+            canvas.drawText("S/ ${"%.2f".format(det.montoAreaComunSoles)}", 295f, yPos, paint)
+            canvas.drawText("S/ ${"%.2f".format(det.montoPagarSoles)}", 355f, yPos, paint)
             yPos += if (detalles.size > 8) 12f else 15f
         }
 
@@ -229,13 +258,15 @@ class PdfGenerator(private val context: Context) {
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
 
         try {
-            document.writeTo(FileOutputStream(file))
-            document.close()
-            return file
+            FileOutputStream(file).use { out ->
+                document.writeTo(out)
+            }
+            file
         } catch (e: Exception) {
             e.printStackTrace()
+            null
+        } finally {
             document.close()
-            return null
         }
     }
 }

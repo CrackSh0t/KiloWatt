@@ -8,15 +8,22 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.kilowatt.data.DetalleCobro
 import com.example.kilowatt.databinding.ItemCobroBinding
 import com.example.kilowatt.util.PdfGenerator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 
 class CobroAdapter(
-    private var lista: List<DetalleCobro> = emptyList()
-) : RecyclerView.Adapter<CobroAdapter.ViewHolder>() {
+    private val onWhatsappClick: ((DetalleCobro) -> Unit)? = null,
+    private val onPdfClick: ((DetalleCobro) -> Unit)? = null
+) : ListAdapter<DetalleCobro, CobroAdapter.ViewHolder>(CobroDiffCallback) {
 
     class ViewHolder(val binding: ItemCobroBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -28,7 +35,7 @@ class CobroAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = lista[position]
+        val item = getItem(position)
 
         holder.binding.tvNombreInquilino.text = item.nombreInquilino.ifEmpty { "Inquilino / Espacio" }
         holder.binding.tvEspacio.text = item.nombreEspacio
@@ -40,33 +47,38 @@ class CobroAdapter(
         // Estado: Si no hay lectura, advertir
         if (item.lecturaAnterior == 0.0 && item.lecturaActual == 0.0 && item.consumoKwh == 0.0) {
             holder.binding.tvEstadoPago.text = "Sin Lectura ⚠️"
-            holder.binding.tvEstadoPago.setBackgroundColor(Color.parseColor("#33F44336"))
-            holder.binding.tvEstadoPago.setTextColor(Color.parseColor("#D32F2F"))
+            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_SIN_LECTURA)
+            holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_SIN_LECTURA)
         } else {
             holder.binding.tvEstadoPago.text = "Pendiente 🟡"
-            holder.binding.tvEstadoPago.setBackgroundColor(Color.parseColor("#33FFC107"))
-            holder.binding.tvEstadoPago.setTextColor(Color.parseColor("#FF8F00"))
+            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_PENDIENTE)
+            holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_PENDIENTE)
         }
 
         // Botón WhatsApp
         holder.binding.btnEnviarWhatsapp.setOnClickListener {
-            enviarMensajeWhatsapp(holder.itemView.context, item)
+            if (onWhatsappClick != null) {
+                onWhatsappClick.invoke(item)
+            } else {
+                enviarMensajeWhatsapp(holder.itemView.context, item)
+            }
         }
 
-        // Botón PDF
+        // Botón PDF (Asíncrono y seguro)
         holder.binding.btnExportarPdf.setOnClickListener {
-            exportarPdfIndividual(holder.itemView.context, item)
+            if (onPdfClick != null) {
+                onPdfClick.invoke(item)
+            } else {
+                exportarPdfIndividual(holder.itemView.context, item, holder)
+            }
         }
     }
-
-    override fun getItemCount(): Int = lista.size
 
     fun actualizarLista(nuevaLista: List<DetalleCobro>) {
-        lista = nuevaLista
-        notifyDataSetChanged()
+        submitList(nuevaLista)
     }
 
-    private fun enviarMensajeWhatsapp(context: android.content.Context, cobro: DetalleCobro) {
+    private fun enviarMensajeWhatsapp(context: Context, cobro: DetalleCobro) {
         val detalleAreaComun = if (cobro.montoAreaComunSoles > 0) {
             "\n🏢 *Cuota Área Común:* S/ ${"%.2f".format(cobro.montoAreaComunSoles)}"
         } else ""
@@ -84,7 +96,7 @@ class CobroAdapter(
         💰 *TOTAL A PAGAR:* *S/ ${"%.2f".format(cobro.montoPagarSoles)}*
         
         Por favor realizar el Yape/Plin o transferencia al número acostumbrado. ¡Muchas gracias!
-    """.trimIndent()
+        """.trimIndent()
 
         try {
             val intent = Intent(Intent.ACTION_VIEW)
@@ -96,19 +108,47 @@ class CobroAdapter(
         }
     }
 
-    private fun exportarPdfIndividual(context: Context, cobro: DetalleCobro) {
-        val generator = PdfGenerator(context)
-        val file = generator.generarComprobanteIndividual(cobro)
+    private fun exportarPdfIndividual(context: Context, cobro: DetalleCobro, holder: ViewHolder) {
+        holder.binding.btnExportarPdf.isEnabled = false
+        Toast.makeText(context, "Generando PDF...", Toast.LENGTH_SHORT).show()
 
-        if (file != null && file.exists()) {
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            val intent = Intent(Intent.ACTION_SEND)
-            intent.type = "application/pdf"
-            intent.putExtra(Intent.EXTRA_STREAM, uri)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            context.startActivity(Intent.createChooser(intent, "Compartir Comprobante PDF"))
-        } else {
-            Toast.makeText(context, "Error al generar el PDF", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val generator = PdfGenerator(context)
+                val file = generator.generarComprobanteIndividual(cobro)
+
+                if (file != null && file.exists()) {
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_SEND)
+                    intent.type = "application/pdf"
+                    intent.putExtra(Intent.EXTRA_STREAM, uri)
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    context.startActivity(Intent.createChooser(intent, "Compartir Comprobante PDF"))
+                } else {
+                    Toast.makeText(context, "Error al generar el PDF", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            } finally {
+                holder.binding.btnExportarPdf.isEnabled = true
+            }
+        }
+    }
+
+    companion object {
+        private val COLOR_BG_SIN_LECTURA = Color.parseColor("#33F44336")
+        private val COLOR_TEXT_SIN_LECTURA = Color.parseColor("#D32F2F")
+        private val COLOR_BG_PENDIENTE = Color.parseColor("#33FFC107")
+        private val COLOR_TEXT_PENDIENTE = Color.parseColor("#FF8F00")
+
+        val CobroDiffCallback = object : DiffUtil.ItemCallback<DetalleCobro>() {
+            override fun areItemsTheSame(oldItem: DetalleCobro, newItem: DetalleCobro): Boolean {
+                return oldItem.nombreEspacio == newItem.nombreEspacio && oldItem.mesPeriodo == newItem.mesPeriodo
+            }
+
+            override fun areContentsTheSame(oldItem: DetalleCobro, newItem: DetalleCobro): Boolean {
+                return oldItem == newItem
+            }
         }
     }
 }

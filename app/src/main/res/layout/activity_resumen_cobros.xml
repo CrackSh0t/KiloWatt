@@ -20,7 +20,7 @@
             android:layout_toStartOf="@id/btnExportarReportePdf"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="📊 Resumen de Cobros"
+            android:text="@string/title_resumen_cobros"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -30,10 +30,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
-            android:text="Reporte 📄"
-            android:textColor="#673AB7"
+            android:text="@string/btn_reporte_pdf"
+            android:textColor="@color/purple_primary"
             app:icon="@android:drawable/ic_menu_save"
-            app:iconTint="#673AB7" />
+            app:iconTint="@color/purple_primary" />
     </RelativeLayout>
 
     <!-- Selector de Mes / Periodo -->
@@ -47,7 +47,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Seleccionar Mes: "
+            android:text="@string/label_seleccionar_mes"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -64,12 +64,13 @@
         android:layout_marginBottom="16dp"
         app:cardCornerRadius="12dp"
         app:cardElevation="2dp"
-        app:strokeColor="#673AB7"
+        app:strokeColor="@color/purple_primary"
         app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:baselineAligned="false"
             android:orientation="horizontal"
             android:padding="14dp"
             android:weightSum="3">
@@ -84,15 +85,15 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recibo Total"
-                    android:textColor="#757575"
+                    android:text="@string/label_recibo_total"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/tvReciboTotalGlobal"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="S/ 0.00"
+                    android:text="@string/default_soles"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -107,15 +108,15 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="kWh Totales"
-                    android:textColor="#757575"
+                    android:text="@string/label_kwh_totales"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/tvKwhTotalesGlobal"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 kWh"
+                    android:text="@string/default_kwh"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -130,16 +131,16 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Precio x kWh"
-                    android:textColor="#757575"
+                    android:text="@string/label_precio_kwh"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/tvPrecioKwhGlobal"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="S/ 0.00"
-                    android:textColor="#673AB7"
+                    android:text="@string/default_soles"
+                    android:textColor="@color/purple_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -150,7 +151,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Detalle por Inquilino"
+        android:text="@string/title_detalle_inquilino"
         android:textSize="16sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />

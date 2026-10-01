@@ -239,22 +239,26 @@ class ConfiguracionActivity : AppCompatActivity() {
             )
 
             repository.actualizarInquilinoYSubmedidor(inqActualizado, subActualizado) { exito, error ->
-                if (exito) {
-                    Toast.makeText(this, "Actualizado en la nube", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
-                } else {
-                    Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
+                if (!isFinishing && !isDestroyed) {
+                    if (exito) {
+                        Toast.makeText(this, "Actualizado en la nube", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
 
         dialogBinding.btnEliminar.setOnClickListener {
             repository.eliminarInquilinoYSubmedidor(item.inquilino, item.submedidor) { exito, error ->
-                if (exito) {
-                    Toast.makeText(this, "Eliminado correctamente", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
-                } else {
-                    Toast.makeText(this, "Error al eliminar: $error", Toast.LENGTH_SHORT).show()
+                if (!isFinishing && !isDestroyed) {
+                    if (exito) {
+                        Toast.makeText(this, "Eliminado correctamente", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(this, "Error al eliminar: $error", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }

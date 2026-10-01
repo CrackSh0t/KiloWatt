@@ -10,19 +10,13 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <RelativeLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡ Registrador de Lecturas"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-        </RelativeLayout>
+            android:layout_marginBottom="16dp"
+            android:text="@string/title_lecturas"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <!-- Card 1: Factura General del Mes -->
         <com.google.android.material.card.MaterialCardView
@@ -41,7 +35,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="1. Recibo General del Mes"
+                    android:text="@string/card_recibo_general_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"/>
@@ -50,12 +44,14 @@
                     android:id="@+id/etMesPeriodo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Periodo / Mes (ej. Agosto 2026)"
+                    android:hint="@string/hint_mes_periodo"
+                    android:importantForAutofill="no"
                     android:inputType="text" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <EditText
@@ -63,7 +59,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="Monto Total (S/)"
+                        android:hint="@string/hint_monto_total"
+                        android:importantForAutofill="no"
                         android:inputType="numberDecimal" />
 
                     <EditText
@@ -71,7 +68,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="kWh Totales"
+                        android:hint="@string/hint_kwh_totales"
+                        android:importantForAutofill="no"
                         android:inputType="numberDecimal" />
                 </LinearLayout>
 
@@ -79,7 +77,7 @@
                     android:id="@+id/btnGuardarFactura"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Guardar Recibo Base"
+                    android:text="@string/btn_guardar_recibo_base"
                     android:layout_marginTop="8dp"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -101,7 +99,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="2. Ingresar Lectura de Medidor"
+                    android:text="@string/card_lectura_medidor_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"/>
@@ -109,9 +107,9 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Selecciona el Medidor:"
+                    android:text="@string/label_selecciona_medidor"
                     android:textSize="12sp"
-                    android:textColor="#757575"/>
+                    android:textColor="@color/gray_secondary"/>
 
                 <Spinner
                     android:id="@+id/spSubmedidores"
@@ -122,6 +120,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <EditText
@@ -129,7 +128,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="Lectura Anterior"
+                        android:hint="@string/hint_lectura_anterior"
+                        android:importantForAutofill="no"
                         android:inputType="numberDecimal" />
 
                     <EditText
@@ -137,7 +137,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="Lectura Actual"
+                        android:hint="@string/hint_lectura_actual"
+                        android:importantForAutofill="no"
                         android:inputType="numberDecimal" />
                 </LinearLayout>
 
@@ -145,7 +146,7 @@
                     android:id="@+id/btnCalcularYGuardar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Calcular Consumo y Guardar"
+                    android:text="@string/btn_calcular_guardar"
                     android:layout_marginTop="8dp"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

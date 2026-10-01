@@ -2,15 +2,15 @@ package com.example.kilowatt
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.kilowatt.data.InquilinoConMedidor
 import com.example.kilowatt.databinding.ItemInquilinoBinding
 
 class InquilinoAdapter(
     private val onItemClick: (InquilinoConMedidor) -> Unit
-) : RecyclerView.Adapter<InquilinoAdapter.ViewHolder>() {
-
-    private var lista = listOf<InquilinoConMedidor>()
+) : ListAdapter<InquilinoConMedidor, InquilinoAdapter.ViewHolder>(InquilinoDiffCallback) {
 
     class ViewHolder(val binding: ItemInquilinoBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -22,10 +22,11 @@ class InquilinoAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = lista[position]
+        val item = getItem(position)
 
-        val nombre = item.inquilino?.nombreCompleto ?: item.submedidor.nombreEspacio
-        val telefono = item.inquilino?.telefonoWhatsapp ?: "N/A"
+        val nombre = item.inquilino?.nombreCompleto?.ifEmpty { item.submedidor.nombreEspacio }
+            ?: item.submedidor.nombreEspacio
+        val telefono = item.inquilino?.telefonoWhatsapp?.ifEmpty { "N/A" } ?: "N/A"
 
         holder.binding.tvNombre.text = nombre
         holder.binding.tvEspacio.text = if (item.submedidor.esAreaComun) "🏢 Área Común" else item.submedidor.nombreEspacio
@@ -36,10 +37,19 @@ class InquilinoAdapter(
         }
     }
 
-    override fun getItemCount() = lista.size
-
     fun actualizarLista(nuevaLista: List<InquilinoConMedidor>) {
-        lista = nuevaLista
-        notifyDataSetChanged()
+        submitList(nuevaLista)
+    }
+
+    companion object {
+        val InquilinoDiffCallback = object : DiffUtil.ItemCallback<InquilinoConMedidor>() {
+            override fun areItemsTheSame(oldItem: InquilinoConMedidor, newItem: InquilinoConMedidor): Boolean {
+                return oldItem.submedidor.idSubmedidor == newItem.submedidor.idSubmedidor
+            }
+
+            override fun areContentsTheSame(oldItem: InquilinoConMedidor, newItem: InquilinoConMedidor): Boolean {
+                return oldItem == newItem
+            }
+        }
     }
 }

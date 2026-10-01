@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="✏️ Editar Inquilino / Medidor"
+        android:text="@string/title_editar_inquilino"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -17,7 +17,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nombre completo"
+        android:hint="@string/hint_nombre_completo"
         android:layout_marginBottom="10dp">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -30,7 +30,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="WhatsApp"
+        android:hint="@string/hint_whatsapp"
         android:layout_marginBottom="10dp">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -43,7 +43,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Espacio asignado"
+        android:hint="@string/hint_espacio"
         android:layout_marginBottom="10dp">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -57,7 +57,7 @@
         android:id="@+id/cbEditPagaAreaComun"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="¿Este espacio paga cuota de área común?"
+        android:text="@string/chk_paga_area_comun"
         android:textSize="13sp"
         android:layout_marginBottom="16dp" />
 
@@ -72,14 +72,14 @@
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Eliminar"
-            android:textColor="#F44336" />
+            android:text="@string/btn_eliminar"
+            android:textColor="@color/red_error" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnGuardarCambios"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="Guardar Cambios" />
+            android:text="@string/btn_guardar_cambios" />
     </LinearLayout>
 </LinearLayout>

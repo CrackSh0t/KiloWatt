@@ -28,7 +28,7 @@
                     android:id="@+id/tvNombreInquilino"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Fernando"
+                    android:text="Inquilino"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -36,8 +36,8 @@
                     android:id="@+id/tvEspacio"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Depa 101"
-                    android:textColor="#757575"
+                    android:text="Espacio"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -47,11 +47,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:background="#33FFC107"
+                android:background="@color/amber_warning_bg"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
-                android:text="Pendiente 🟡"
-                android:textColor="#FF8F00"
+                android:text="@string/estado_pendiente"
+                android:textColor="@color/amber_warning"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </RelativeLayout>
@@ -60,12 +60,13 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginVertical="12dp"
-            android:background="#1F000000" />
+            android:background="@color/gray_divider" />
 
         <!-- Detalles de Lectura y Consumo -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:baselineAligned="false"
             android:orientation="horizontal"
             android:weightSum="3">
 
@@ -78,15 +79,15 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="L. Anterior"
-                    android:textColor="#757575"
+                    android:text="@string/label_lectura_ant_corta"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/tvLecturaAnterior"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="100.0 kWh"
+                    android:text="@string/default_kwh"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -100,15 +101,15 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="L. Actual"
-                    android:textColor="#757575"
+                    android:text="@string/label_lectura_act_corta"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/tvLecturaActual"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="150.0 kWh"
+                    android:text="@string/default_kwh"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -122,16 +123,16 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Consumo Total"
-                    android:textColor="#757575"
+                    android:text="@string/label_consumo_total"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/tvConsumoKwh"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="50.0 kWh"
-                    android:textColor="#673AB7"
+                    android:text="@string/default_kwh"
+                    android:textColor="@color/purple_primary"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -156,8 +157,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Total a Pagar:"
-                    android:textColor="#757575"
+                    android:text="@string/label_total_pagar"
+                    android:textColor="@color/gray_secondary"
                     android:textSize="12sp" />
 
                 <TextView
@@ -166,8 +167,8 @@
                     android:layout_height="wrap_content"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="S/ 50.00"
-                    android:textColor="#2E7D32"
+                    android:text="@string/default_soles"
+                    android:textColor="@color/green_success"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -187,19 +188,19 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="6dp"
                     android:paddingHorizontal="0dp"
-                    android:text="PDF 📄"
+                    android:text="@string/btn_pdf"
                     android:textSize="12sp"
                     app:cornerRadius="8dp"
-                    app:strokeColor="#673AB7" />
+                    app:strokeColor="@color/purple_primary" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEnviarWhatsapp"
                     android:layout_width="105dp"
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="0dp"
-                    android:text="WhatsApp 📲"
+                    android:text="@string/btn_whatsapp"
                     android:textSize="12sp"
-                    app:backgroundTint="#25D366"
+                    app:backgroundTint="@color/whatsapp_green"
                     app:cornerRadius="8dp" />
             </LinearLayout>
         </RelativeLayout>

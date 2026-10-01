@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         user.email?.let { email ->
-            binding.tvUsuarioEmail.text = "Sesión: $email"
+            binding.tvUsuarioEmail.text = getString(R.string.main_session_prefix, email)
         }
 
         // 1. Abrir Registrador de Lecturas
