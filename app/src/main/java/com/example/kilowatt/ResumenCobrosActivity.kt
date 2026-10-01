@@ -125,47 +125,55 @@ class ResumenCobrosActivity : AppCompatActivity() {
                     return@combine
                 }
 
+                val submedidoresUnicos = submedidores.distinctBy { it.nombreEspacio.trim().lowercase() }
                 val lecturasUnicas = lecturas.distinctBy { it.idSubmedidor }
 
-                // 1. kWh globales según recibo de luz principal
-                val totalKwhReciboBase = factura.kwhTotalesRecibo
-
-                // 2. Precio x kWh según el Recibo Base
-                val precioKwhEfectivo = if (totalKwhReciboBase > 0) {
-                    factura.montoTotalSoles / totalKwhReciboBase
-                } else {
-                    0.0
+                // 1. Suma total de kWh de TODOS los submedidores con lectura guardada
+                val sumaKwhSubmedidores = submedidoresUnicos.sumOf { sub ->
+                    lecturasUnicas.find { it.idSubmedidor == sub.idSubmedidor }?.consumoKwh ?: 0.0
                 }
 
-                binding.tvReciboTotalGlobal.text = "S/ %.2f".format(factura.montoTotalSoles)
-                binding.tvKwhTotalesGlobal.text = "%.0f kWh".format(totalKwhReciboBase)
-                binding.tvPrecioKwhGlobal.text = "S/ %.2f".format(precioKwhEfectivo)
+                val montoTotalRecibo = factura.montoTotalSoles
+                val kwhReciboPrincipal = factura.kwhTotalesRecibo
 
-                // 3. Área común
-                val lecturasAreaComun = lecturasUnicas.filter { lectura ->
-                    val sub = submedidores.find { it.idSubmedidor == lectura.idSubmedidor }
-                    sub?.esAreaComun == true
+                // Indicadores de la cabecera
+                val precioKwhPromedio = if (sumaKwhSubmedidores > 0) montoTotalRecibo / sumaKwhSubmedidores else 0.0
+                binding.tvReciboTotalGlobal.text = "S/ %.2f".format(montoTotalRecibo)
+                binding.tvKwhTotalesGlobal.text = "%.1f kWh".format(kwhReciboPrincipal)
+                binding.tvPrecioKwhGlobal.text = "S/ %.2f".format(precioKwhPromedio)
+
+                // 2. Calcular Pago S/ de las Áreas Comunes (Ej: Baño 2do piso)
+                val submedidoresAreaComun = submedidoresUnicos.filter { it.esAreaComun }
+                var totalSolesAreaComun = 0.0
+
+                submedidoresAreaComun.forEach { subComun ->
+                    val lecturaComun = lecturasUnicas.find { it.idSubmedidor == subComun.idSubmedidor }
+                    val consumoKwh = lecturaComun?.consumoKwh ?: 0.0
+                    val porcentajeConsumo = if (sumaKwhSubmedidores > 0) consumoKwh / sumaKwhSubmedidores else 0.0
+                    val pagoSolesAreaComun = porcentajeConsumo * montoTotalRecibo
+                    totalSolesAreaComun += pagoSolesAreaComun
                 }
 
-                val totalKwhAreaComun = lecturasAreaComun.sumOf { it.consumoKwh }
-                val totalSolesAreaComun = totalKwhAreaComun * precioKwhEfectivo
-
-                val submedidoresQuePaganComun = submedidores.filter { !it.esAreaComun && it.pagaAreaComun }
-                val cantidadPagadores = submedidoresQuePaganComun.size.coerceAtLeast(1)
-
+                // 3. Dividir el costo del Área Común entre los inquilinos configurados para pagar
+                val submedidoresParticulares = submedidoresUnicos.filter { !it.esAreaComun }
+                val pagadoresAreaComun = submedidoresParticulares.filter { it.pagaAreaComun }
+                val cantidadPagadores = pagadoresAreaComun.size.coerceAtLeast(1)
                 val cuotaAreaComunPorInquilino = totalSolesAreaComun / cantidadPagadores
 
-                // 4. Detalle individual (Excluye las áreas comunes de la lista de cobro directa)
-                val submedidoresParticulares = submedidores.filter { !it.esAreaComun }
-
+                // 4. Generar el detalle para cada inquilino particular (exactamente como en Excel)
                 val listaDetalle = submedidoresParticulares.map { submedidor ->
                     val lectura = lecturasUnicas.find { it.idSubmedidor == submedidor.idSubmedidor }
                     val inquilino = inquilinos.find { it.idInquilino == submedidor.idInquilinoTitular }
 
                     val consumoKwh = lectura?.consumoKwh ?: 0.0
-                    val consumoPropioSoles = consumoKwh * precioKwhEfectivo
-                    val cuotaAplicada = if (submedidor.pagaAreaComun) cuotaAreaComunPorInquilino else 0.0
-                    val totalFinalPagar = consumoPropioSoles + cuotaAplicada
+
+                    // FÓRMULA EXCEL: (Consumo kWh / Suma Total kWh) * Monto Total Recibo
+                    val porcentajeConsumo = if (sumaKwhSubmedidores > 0) consumoKwh / sumaKwhSubmedidores else 0.0
+                    val pagoBaseSoles = porcentajeConsumo * montoTotalRecibo
+
+                    // Sumar la cuota del área común si aplica
+                    val cuotaComunAplicada = if (submedidor.pagaAreaComun) cuotaAreaComunPorInquilino else 0.0
+                    val totalFinalPagar = pagoBaseSoles + cuotaComunAplicada
 
                     DetalleCobro(
                         nombreInquilino = inquilino?.nombreCompleto?.ifEmpty { submedidor.nombreEspacio } ?: submedidor.nombreEspacio,
@@ -175,8 +183,8 @@ class ResumenCobrosActivity : AppCompatActivity() {
                         lecturaAnterior = lectura?.lecturaAnterior ?: 0.0,
                         lecturaActual = lectura?.lecturaActual ?: 0.0,
                         consumoKwh = consumoKwh,
-                        precioKwh = precioKwhEfectivo,
-                        montoAreaComunSoles = cuotaAplicada,
+                        precioKwh = precioKwhPromedio,
+                        montoAreaComunSoles = cuotaComunAplicada,
                         montoPagarSoles = totalFinalPagar
                     )
                 }
