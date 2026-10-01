@@ -1,15 +1,15 @@
 package com.example.kilowatt
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.kilowatt.data.AppDatabase
-import com.example.kilowatt.data.Inquilino
+import com.example.kilowatt.data.AuthRepository
 import com.example.kilowatt.data.InquilinoConMedidor
-import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.data.InquilinoRepository
 import com.example.kilowatt.databinding.ActivityConfiguracionBinding
 import com.example.kilowatt.databinding.DialogEditarInquilinoBinding
 import com.example.kilowatt.util.SettingsManager
@@ -21,7 +21,8 @@ class ConfiguracionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityConfiguracionBinding
     private lateinit var adapter: InquilinoAdapter
-    private lateinit var database: AppDatabase
+    private lateinit var repository: InquilinoRepository
+    private lateinit var authRepository: AuthRepository
     private lateinit var settingsManager: SettingsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,14 +30,23 @@ class ConfiguracionActivity : AppCompatActivity() {
         binding = ActivityConfiguracionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        database = AppDatabase.getDatabase(this)
+        repository = InquilinoRepository()
+        authRepository = AuthRepository()
         settingsManager = SettingsManager(this)
 
         setupRecyclerView()
         observarInquilinos()
-        cargarDatosPropietario()
+        observarPerfilPropietario()
 
         binding.btnVolver.setOnClickListener {
+            finish()
+        }
+
+        binding.btnCerrarSesion.setOnClickListener {
+            authRepository.cerrarSesion()
+            val intent = Intent(this, AuthActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
             finish()
         }
 
@@ -49,10 +59,34 @@ class ConfiguracionActivity : AppCompatActivity() {
         }
     }
 
-    private fun cargarDatosPropietario() {
+    private fun observarPerfilPropietario() {
+        // Cargar primero de SharedPreferences por defecto
         binding.etNombrePropietario.setText(settingsManager.nombrePropietario)
         binding.etNumeroPago.setText(settingsManager.numeroPago)
         binding.etDiaLimitePago.setText(settingsManager.diaLimitePago.toString())
+
+        // Luego sincronizar desde Firestore
+        lifecycleScope.launch {
+            repository.obtenerPerfilPropietarioFlow().collect { datos ->
+                if (datos != null) {
+                    val nombre = datos["nombrePropietario"]?.toString() ?: ""
+                    val numero = datos["numeroPago"]?.toString() ?: ""
+                    val diaLimite = (datos["diaLimitePago"] as? Long)?.toInt()
+                        ?: (datos["diaLimitePago"] as? Int) ?: 5
+
+                    if (nombre.isNotEmpty()) {
+                        settingsManager.nombrePropietario = nombre
+                        binding.etNombrePropietario.setText(nombre)
+                    }
+                    if (numero.isNotEmpty()) {
+                        settingsManager.numeroPago = numero
+                        binding.etNumeroPago.setText(numero)
+                    }
+                    settingsManager.diaLimitePago = diaLimite
+                    binding.etDiaLimitePago.setText(diaLimite.toString())
+                }
+            }
+        }
     }
 
     private fun guardarDatosPropietario() {
@@ -65,11 +99,27 @@ class ConfiguracionActivity : AppCompatActivity() {
             return
         }
 
+        val diaLimite = diaStr.toIntOrNull() ?: 5
         settingsManager.nombrePropietario = nombre
         settingsManager.numeroPago = numero
-        settingsManager.diaLimitePago = diaStr.toIntOrNull() ?: 5
+        settingsManager.diaLimitePago = diaLimite
 
-        Toast.makeText(this, "Datos del propietario guardados", Toast.LENGTH_SHORT).show()
+        binding.btnGuardarDatosPropietario.isEnabled = false
+
+        lifecycleScope.launch {
+            try {
+                val (exito, error) = repository.guardarPerfilPropietario(nombre, numero, diaLimite)
+                if (exito) {
+                    Toast.makeText(this@ConfiguracionActivity, "Datos del propietario guardados con éxito", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@ConfiguracionActivity, "Guardado localmente. Error en nube: $error", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@ConfiguracionActivity, "Guardado localmente. Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            } finally {
+                binding.btnGuardarDatosPropietario.isEnabled = true
+            }
+        }
     }
 
     private fun setupRecyclerView() {
@@ -86,11 +136,11 @@ class ConfiguracionActivity : AppCompatActivity() {
     private fun observarInquilinos() {
         lifecycleScope.launch {
             combine(
-                database.inquilinoDao().obtenerTodosLosInquilinos(),
-                database.submedidorDao().obtenerTodosLosSubmedidores()
+                repository.obtenerInquilinosFlow(),
+                repository.obtenerSubmedidoresFlow(),
             ) { inquilinos, submedidores ->
                 submedidores.map { sub ->
-                    val inq = inquilinos.find { it.idInquilino == sub.idInquilinoTitular }
+                    val inq = if (sub.esAreaComun) null else inquilinos.find { it.idInquilino == sub.idInquilinoTitular }
                     InquilinoConMedidor(inquilino = inq, submedidor = sub)
                 }
             }.collect { lista ->
@@ -101,6 +151,7 @@ class ConfiguracionActivity : AppCompatActivity() {
 
     private fun guardarDatos() {
         val nombre = binding.etNombreInquilino.text.toString().trim()
+        // Nos aseguramos de leer correctamente el campo de WhatsApp/Teléfono
         val telefono = binding.etTelefonoWhatsapp.text.toString().trim()
         val nombreEspacio = binding.etNombreEspacio.text.toString().trim()
         val esAreaComun = binding.cbEsAreaComun.isChecked
@@ -111,43 +162,47 @@ class ConfiguracionActivity : AppCompatActivity() {
             return
         }
 
+        if (!esAreaComun && nombre.isEmpty()) {
+            Toast.makeText(this, "Ingresa el nombre del inquilino", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Deshabilitar botón durante el envío a la nube
+        binding.btnGuardarInquilino.isEnabled = false
+
         lifecycleScope.launch {
-            if (esAreaComun) {
-                val nuevoSubmedidor = Submedidor(
+            try {
+                val (exito, error) = repository.guardarInquilinoYSubmedidor(
+                    nombreCompleto = if (esAreaComun) "Área Común" else nombre,
+                    telefono = if (esAreaComun) "" else telefono,
                     nombreEspacio = nombreEspacio,
-                    esAreaComun = true,
-                    pagaAreaComun = false,
-                    idInquilinoTitular = null
+                    esAreaComun = esAreaComun,
+                    pagaAreaComun = if (esAreaComun) false else pagaAreaComun,
                 )
-                database.submedidorDao().insertarSubmedidor(nuevoSubmedidor)
-            } else {
-                if (nombre.isEmpty()) {
-                    Toast.makeText(this@ConfiguracionActivity, "Ingresa el nombre del inquilino", Toast.LENGTH_SHORT).show()
-                    return@launch
+
+                if (exito) {
+                    // 1. Limpieza explícita de todos los componentes
+                    binding.etNombreInquilino.setText("")
+                    binding.etTelefonoWhatsapp.setText("")
+                    binding.etNombreEspacio.setText("")
+                    binding.cbEsAreaComun.isChecked = false
+                    binding.cbPagaAreaComun.isChecked = true
+
+                    // 2. Limpiar el foco del teclado
+                    binding.etNombreInquilino.clearFocus()
+                    binding.etTelefonoWhatsapp.clearFocus()
+                    binding.etNombreEspacio.clearFocus()
+
+                    Toast.makeText(this@ConfiguracionActivity, "¡Registrado en la nube con éxito!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@ConfiguracionActivity, "Error al guardar en Firestore: $error", Toast.LENGTH_LONG).show()
                 }
-
-                val nuevoInquilino = Inquilino(
-                    nombreCompleto = nombre,
-                    telefonoWhatsapp = telefono
-                )
-                val idInquilinoGenerado = database.inquilinoDao().insertarInquilino(nuevoInquilino)
-
-                val nuevoSubmedidor = Submedidor(
-                    nombreEspacio = nombreEspacio,
-                    esAreaComun = false,
-                    pagaAreaComun = pagaAreaComun,
-                    idInquilinoTitular = idInquilinoGenerado.toInt()
-                )
-                database.submedidorDao().insertarSubmedidor(nuevoSubmedidor)
+            } catch (e: Exception) {
+                Toast.makeText(this@ConfiguracionActivity, "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            } finally {
+                // 3. Garantizar que el botón siempre vuelva a estar activo
+                binding.btnGuardarInquilino.isEnabled = true
             }
-
-            binding.etNombreInquilino.text?.clear()
-            binding.etTelefonoWhatsapp.text?.clear()
-            binding.etNombreEspacio.text?.clear()
-            binding.cbEsAreaComun.isChecked = false
-            binding.cbPagaAreaComun.isChecked = true
-
-            Toast.makeText(this@ConfiguracionActivity, "Guardado con éxito", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -173,35 +228,34 @@ class ConfiguracionActivity : AppCompatActivity() {
             val nuevoEspacio = dialogBinding.etEditEspacio.text.toString().trim()
             val nuevoPagaComun = dialogBinding.cbEditPagaAreaComun.isChecked
 
-            lifecycleScope.launch {
-                val subActualizado = item.submedidor.copy(
-                    nombreEspacio = nuevoEspacio,
-                    pagaAreaComun = nuevoPagaComun
-                )
+            val subActualizado = item.submedidor.copy(
+                nombreEspacio = nuevoEspacio,
+                pagaAreaComun = nuevoPagaComun,
+            )
 
-                database.submedidorDao().insertarSubmedidor(subActualizado)
+            val inqActualizado = item.inquilino?.copy(
+                nombreCompleto = nuevoNombre,
+                telefonoWhatsapp = nuevoTelefono,
+            )
 
-                if (item.inquilino != null) {
-                    val inqActualizado = item.inquilino.copy(
-                        nombreCompleto = nuevoNombre,
-                        telefonoWhatsapp = nuevoTelefono
-                    )
-                    database.inquilinoDao().insertarInquilino(inqActualizado)
+            repository.actualizarInquilinoYSubmedidor(inqActualizado, subActualizado) { exito, error ->
+                if (exito) {
+                    Toast.makeText(this, "Actualizado en la nube", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                } else {
+                    Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
                 }
-
-                Toast.makeText(this@ConfiguracionActivity, "Actualizado correctamente", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
             }
         }
 
         dialogBinding.btnEliminar.setOnClickListener {
-            lifecycleScope.launch {
-                database.submedidorDao().eliminarSubmedidor(item.submedidor)
-                if (item.inquilino != null) {
-                    database.inquilinoDao().eliminarInquilino(item.inquilino)
+            repository.eliminarInquilinoYSubmedidor(item.inquilino, item.submedidor) { exito, error ->
+                if (exito) {
+                    Toast.makeText(this, "Eliminado correctamente", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                } else {
+                    Toast.makeText(this, "Error al eliminar: $error", Toast.LENGTH_SHORT).show()
                 }
-                Toast.makeText(this@ConfiguracionActivity, "Eliminado correctamente", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
             }
         }
 

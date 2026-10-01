@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "888325112626",
+    "project_id": "kilowatt-61b69",
+    "storage_bucket": "kilowatt-61b69.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:888325112626:android:50680980110069045dcd2b",
+        "android_client_info": {
+          "package_name": "com.example.kilowatt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWI0qA0nlevDVTBK8DI6-tGlJGtgxS0HU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

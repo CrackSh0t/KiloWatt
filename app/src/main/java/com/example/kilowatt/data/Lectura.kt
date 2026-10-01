@@ -8,12 +8,11 @@ import androidx.room.PrimaryKey
     tableName = "lecturas",
     indices = [Index(value = ["idSubmedidor", "mesPeriodo"], unique = true)])
 data class Lectura(
-    @PrimaryKey(autoGenerate = true)
-    val idLectura: Int = 0,
-    val idSubmedidor: Int,
-    val mesPeriodo: String,
-    val lecturaAnterior: Double,
-    val lecturaActual: Double,
-    val consumoKwh: Double,
-    val montoPagarSoles: Double
+    @PrimaryKey val idLectura: String = "",
+    val idSubmedidor: String = "",
+    val mesPeriodo: String = "",
+    val lecturaAnterior: Double = 0.0,
+    val lecturaActual: Double = 0.0,
+    val consumoKwh: Double = 0.0,
+    val montoPagarSoles: Double = 0.0
 )

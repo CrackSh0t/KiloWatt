@@ -29,11 +29,20 @@
                 app:iconTint="#673AB7" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="⚙️ Inquilinos y Medidores"
                 android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCerrarSesion"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Salir 🚪"
+                android:textColor="#D32F2F" />
         </LinearLayout>
 
         <!-- Formulario Datos Propietario (PDF) -->

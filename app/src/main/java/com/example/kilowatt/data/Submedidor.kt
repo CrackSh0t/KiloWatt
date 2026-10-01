@@ -5,10 +5,9 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "submedidores")
 data class Submedidor(
-    @PrimaryKey(autoGenerate = true)
-    val idSubmedidor: Int = 0,
-    val nombreEspacio: String, // Ej: "Depa 101", "Baño 2do piso"
+    @PrimaryKey val idSubmedidor: String = "",
+    val nombreEspacio: String = "",
     val esAreaComun: Boolean = false,
     val pagaAreaComun: Boolean = true,
-    val idInquilinoTitular: Int? = null // ID del inquilino (puede ser null si es área común)
+    val idInquilinoTitular: String? = null
 )
