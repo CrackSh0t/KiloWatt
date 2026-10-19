@@ -62,4 +62,17 @@
         android:layout_marginTop="8dp"
         android:text="@string/btn_register" />
 
+    <TextView
+        android:id="@+id/tvForgotPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="8dp"
+        android:text="@string/btn_forgot_password"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="14sp" />
+
 </LinearLayout>

@@ -35,4 +35,15 @@ class AuthRepository {
     fun cerrarSesion() {
         auth.signOut()
     }
+
+    fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onResult(true, null)
+                } else {
+                    onResult(false, task.exception?.localizedMessage)
+                }
+            }
+    }
 }
