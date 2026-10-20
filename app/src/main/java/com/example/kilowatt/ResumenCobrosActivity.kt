@@ -62,10 +62,57 @@ class ResumenCobrosActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = CobroAdapter()
+        adapter = CobroAdapter { detalle ->
+            cambiarEstadoPago(detalle)
+        }
         binding.rvResumenCobros.apply {
             layoutManager = LinearLayoutManager(this@ResumenCobrosActivity)
             adapter = this@ResumenCobrosActivity.adapter
+        }
+    }
+
+    private fun cambiarEstadoPago(detalle: DetalleCobro) {
+        if (detalle.idLectura.isBlank()) {
+            Toast.makeText(this, "Debes ingresar la lectura de este espacio antes de registrar su pago", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (detalle.estadoPago.equals("PAGADO", ignoreCase = true)) {
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_revertir_pago_title)
+                .setMessage(R.string.dialog_revertir_pago_msg)
+                .setPositiveButton("Revertir") { _, _ ->
+                    ejecutarCambioEstado(detalle.idLectura, "PENDIENTE", null, null)
+                }
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show()
+        } else {
+            val metodos = arrayOf("Yape", "Plin", "Efectivo", "Transferencia Bancaria")
+            var seleccionIndice = 0
+
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_metodo_pago_title)
+                .setSingleChoiceItems(metodos, 0) { _, which ->
+                    seleccionIndice = which
+                }
+                .setPositiveButton(R.string.btn_send) { _, _ ->
+                    val metodoElegido = metodos[seleccionIndice]
+                    val fechaActual = System.currentTimeMillis()
+                    ejecutarCambioEstado(detalle.idLectura, "PAGADO", fechaActual, metodoElegido)
+                }
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show()
+        }
+    }
+
+    private fun ejecutarCambioEstado(idLectura: String, nuevoEstado: String, fechaPago: Long?, metodoPago: String?) {
+        lifecycleScope.launch {
+            val (exito, error) = lecturaRepository.actualizarEstadoPago(idLectura, nuevoEstado, fechaPago, metodoPago)
+            if (exito) {
+                Toast.makeText(this@ResumenCobrosActivity, "Estado actualizado: $nuevoEstado", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this@ResumenCobrosActivity, "Error al actualizar: $error", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

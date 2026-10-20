@@ -14,5 +14,8 @@ data class Lectura(
     val lecturaAnterior: Double = 0.0,
     val lecturaActual: Double = 0.0,
     val consumoKwh: Double = 0.0,
-    val montoPagarSoles: Double = 0.0
+    val montoPagarSoles: Double = 0.0,
+    val estadoPago: String = "PENDIENTE",
+    val fechaPago: Long? = null,
+    val metodoPago: String? = null
 )

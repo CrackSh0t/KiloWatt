@@ -1,6 +1,8 @@
 package com.example.kilowatt.data
 
 data class DetalleCobro(
+    val idLectura: String = "",
+    val idSubmedidor: String = "",
     val nombreInquilino: String,
     val telefonoWhatsapp: String,
     val nombreEspacio: String,
@@ -10,5 +12,8 @@ data class DetalleCobro(
     val consumoKwh: Double,
     val precioKwh: Double,
     val montoAreaComunSoles: Double = 0.0,
-    val montoPagarSoles: Double
+    val montoPagarSoles: Double,
+    val estadoPago: String = "PENDIENTE",
+    val fechaPago: Long? = null,
+    val metodoPago: String? = null
 )

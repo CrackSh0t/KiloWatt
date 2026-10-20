@@ -79,6 +79,41 @@ class LecturaRepository {
             }
         }
 
+    // Actualizar el estado y auditoría de pago de una lectura en Firestore
+    suspend fun actualizarEstadoPago(
+        idLectura: String,
+        nuevoEstado: String,
+        fechaPago: Long? = null,
+        metodoPago: String? = null
+    ): Pair<Boolean, String?> =
+        suspendCancellableCoroutine { continuation ->
+            try {
+                val lRef = lecturasRef
+                if (lRef == null) {
+                    if (continuation.isActive) continuation.resume(Pair(false, "Usuario no autenticado"))
+                    return@suspendCancellableCoroutine
+                }
+
+                val docId = sanitizeDocId(idLectura)
+                val updates = mapOf(
+                    "estadoPago" to nuevoEstado,
+                    "fechaPago" to fechaPago,
+                    "metodoPago" to metodoPago
+                )
+
+                lRef.document(docId)
+                    .update(updates)
+                    .addOnSuccessListener {
+                        if (continuation.isActive) continuation.resume(Pair(true, null))
+                    }
+                    .addOnFailureListener { e ->
+                        if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+                    }
+            } catch (e: Exception) {
+                if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+            }
+        }
+
     // Escuchar todas las facturas generales guardadas
     fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> = callbackFlow {
         val fRef = facturasRef

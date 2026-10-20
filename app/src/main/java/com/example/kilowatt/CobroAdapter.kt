@@ -17,12 +17,12 @@ import com.example.kilowatt.util.PdfGenerator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 
 class CobroAdapter(
     private val onWhatsappClick: ((DetalleCobro) -> Unit)? = null,
-    private val onPdfClick: ((DetalleCobro) -> Unit)? = null
+    private val onPdfClick: ((DetalleCobro) -> Unit)? = null,
+    private val onEstadoChange: ((DetalleCobro) -> Unit)? = null,
 ) : ListAdapter<DetalleCobro, CobroAdapter.ViewHolder>(CobroDiffCallback) {
 
     class ViewHolder(val binding: ItemCobroBinding) : RecyclerView.ViewHolder(binding.root)
@@ -44,15 +44,37 @@ class CobroAdapter(
         holder.binding.tvConsumoKwh.text = "%.1f kWh".format(item.consumoKwh)
         holder.binding.tvMontoPagarSoles.text = "S/ %.2f".format(item.montoPagarSoles)
 
-        // Estado: Si no hay lectura, advertir
+        // Estado: Si no hay lectura, advertir. Sino, ver si es Pagado o Pendiente
         if (item.lecturaAnterior == 0.0 && item.lecturaActual == 0.0 && item.consumoKwh == 0.0) {
             holder.binding.tvEstadoPago.text = "Sin Lectura ⚠️"
             holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_SIN_LECTURA)
             holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_SIN_LECTURA)
+            holder.binding.tvDetallePago.visibility = android.view.View.GONE
+        } else if (item.estadoPago.equals("PAGADO", ignoreCase = true)) {
+            holder.binding.tvEstadoPago.text = "Pagado 🟢"
+            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_PAGADO)
+            holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_PAGADO)
+
+            val contexto = holder.itemView.context
+            val fechaTexto = if (item.fechaPago != null && item.fechaPago > 0) {
+                val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                sdf.format(java.util.Date(item.fechaPago))
+            } else {
+                "Recientemente"
+            }
+            val metodoTexto = item.metodoPago ?: "Efectivo"
+            holder.binding.tvDetallePago.text = contexto.getString(R.string.label_pagado_el, fechaTexto, metodoTexto)
+            holder.binding.tvDetallePago.visibility = android.view.View.VISIBLE
         } else {
             holder.binding.tvEstadoPago.text = "Pendiente 🟡"
             holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_PENDIENTE)
             holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_PENDIENTE)
+            holder.binding.tvDetallePago.visibility = android.view.View.GONE
+        }
+
+        // Click sobre el Chip de Estado para alternar entre Pendiente y Pagado
+        holder.binding.tvEstadoPago.setOnClickListener {
+            onEstadoChange?.invoke(item)
         }
 
         // Botón WhatsApp
@@ -140,6 +162,8 @@ class CobroAdapter(
         private val COLOR_TEXT_SIN_LECTURA = Color.parseColor("#D32F2F")
         private val COLOR_BG_PENDIENTE = Color.parseColor("#33FFC107")
         private val COLOR_TEXT_PENDIENTE = Color.parseColor("#FF8F00")
+        private val COLOR_BG_PAGADO = Color.parseColor("#334CAF50")
+        private val COLOR_TEXT_PAGADO = Color.parseColor("#2E7D32")
 
         val CobroDiffCallback = object : DiffUtil.ItemCallback<DetalleCobro>() {
             override fun areItemsTheSame(oldItem: DetalleCobro, newItem: DetalleCobro): Boolean {

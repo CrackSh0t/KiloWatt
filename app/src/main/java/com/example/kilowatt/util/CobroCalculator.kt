@@ -131,6 +131,8 @@ object CobroCalculator {
             }
 
             DetalleCobro(
+                idLectura = lectura?.idLectura ?: "",
+                idSubmedidor = submedidor.idSubmedidor,
                 nombreInquilino = nombreFinal,
                 telefonoWhatsapp = inquilino?.telefonoWhatsapp ?: "",
                 nombreEspacio = submedidor.nombreEspacio,
@@ -140,7 +142,10 @@ object CobroCalculator {
                 consumoKwh = consumoKwh,
                 precioKwh = precioKwhPromedio,
                 montoAreaComunSoles = cuotaComunAplicada,
-                montoPagarSoles = totalFinalPagar
+                montoPagarSoles = totalFinalPagar,
+                estadoPago = lectura?.estadoPago ?: "PENDIENTE",
+                fechaPago = lectura?.fechaPago,
+                metodoPago = lectura?.metodoPago
             )
         }
 

@@ -22,6 +22,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
+                android:layout_toStartOf="@id/tvEstadoPago"
+                android:layout_marginEnd="8dp"
                 android:orientation="vertical">
 
                 <TextView
@@ -39,6 +41,15 @@
                     android:text="Espacio"
                     android:textColor="@color/gray_secondary"
                     android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvDetallePago"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/green_success"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Chip de Estado de Pago -->

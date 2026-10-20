@@ -72,5 +72,11 @@
     <string name="label_lectura_act_corta">L. Actual</string>
     <string name="label_consumo_total">Consumo Total</string>
     <string name="estado_pendiente">Pendiente 🟡</string>
+    <string name="estado_pagado">Pagado 🟢</string>
     <string name="estado_sin_lectura">Sin Lectura ⚠️</string>
+    <string name="dialog_metodo_pago_title">Seleccionar Método de Pago</string>
+    <string name="dialog_metodo_pago_msg">Elige el medio por el cual se recibió el pago:</string>
+    <string name="dialog_revertir_pago_title">Revertir Pago</string>
+    <string name="dialog_revertir_pago_msg">¿Deseas marcar este cobro nuevamente como Pendiente?</string>
+    <string name="label_pagado_el">Pagado el %1$s vía %2$s</string>
 </resources>
