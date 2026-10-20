@@ -65,6 +65,16 @@ class CobroAdapter(
             val metodoTexto = item.metodoPago ?: "Efectivo"
             holder.binding.tvDetallePago.text = contexto.getString(R.string.label_pagado_el, fechaTexto, metodoTexto)
             holder.binding.tvDetallePago.visibility = android.view.View.VISIBLE
+        } else if (item.estadoPago.equals("VENCIDO", ignoreCase = true)) {
+            holder.binding.tvEstadoPago.text = "Vencido 🔴"
+            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_VENCIDO)
+            holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_VENCIDO)
+
+            val contexto = holder.itemView.context
+            val diaLimite = com.example.kilowatt.util.SettingsManager(contexto).diaLimitePago
+            val fechaLimiteStr = com.example.kilowatt.util.PeriodoDateUtils.formatearFechaLimite(item.mesPeriodo, diaLimite) ?: ""
+            holder.binding.tvDetallePago.text = contexto.getString(R.string.label_vencio_el, fechaLimiteStr)
+            holder.binding.tvDetallePago.visibility = android.view.View.VISIBLE
         } else {
             holder.binding.tvEstadoPago.text = "Pendiente 🟡"
             holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_PENDIENTE)
@@ -164,6 +174,8 @@ class CobroAdapter(
         private val COLOR_TEXT_PENDIENTE = Color.parseColor("#FF8F00")
         private val COLOR_BG_PAGADO = Color.parseColor("#334CAF50")
         private val COLOR_TEXT_PAGADO = Color.parseColor("#2E7D32")
+        private val COLOR_BG_VENCIDO = Color.parseColor("#33F44336")
+        private val COLOR_TEXT_VENCIDO = Color.parseColor("#D32F2F")
 
         val CobroDiffCallback = object : DiffUtil.ItemCallback<DetalleCobro>() {
             override fun areItemsTheSame(oldItem: DetalleCobro, newItem: DetalleCobro): Boolean {

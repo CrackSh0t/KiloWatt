@@ -59,7 +59,8 @@ object CobroCalculator {
         factura: FacturaGeneral,
         submedidores: List<Submedidor>,
         lecturas: List<Lectura>,
-        inquilinos: List<Inquilino>
+        inquilinos: List<Inquilino>,
+        diaLimitePago: Int = 5
     ): ResumenCobroResult {
         val submedidoresUnicos = submedidores.distinctBy { it.nombreEspacio.trim().lowercase() }
         val lecturasUnicas = lecturas.distinctBy { it.idSubmedidor }
@@ -130,6 +131,14 @@ object CobroCalculator {
                 else -> "Inquilino / Espacio"
             }
 
+            val estadoBase = lectura?.estadoPago ?: "PENDIENTE"
+            val estadoFinal = if (estadoBase.equals("PAGADO", ignoreCase = true)) {
+                "PAGADO"
+            } else {
+                val vencido = PeriodoDateUtils.esFechaVencida(mes, diaLimitePago)
+                if (vencido) "VENCIDO" else "PENDIENTE"
+            }
+
             DetalleCobro(
                 idLectura = lectura?.idLectura ?: "",
                 idSubmedidor = submedidor.idSubmedidor,
@@ -143,7 +152,7 @@ object CobroCalculator {
                 precioKwh = precioKwhPromedio,
                 montoAreaComunSoles = cuotaComunAplicada,
                 montoPagarSoles = totalFinalPagar,
-                estadoPago = lectura?.estadoPago ?: "PENDIENTE",
+                estadoPago = estadoFinal,
                 fechaPago = lectura?.fechaPago,
                 metodoPago = lectura?.metodoPago
             )

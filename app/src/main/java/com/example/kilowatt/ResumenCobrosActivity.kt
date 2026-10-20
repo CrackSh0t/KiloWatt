@@ -189,13 +189,15 @@ class ResumenCobrosActivity : AppCompatActivity() {
                 }
 
                 // Ejecución del motor de cálculo en Dispatchers.Default fuera del hilo principal
+                val diaLimite = com.example.kilowatt.util.SettingsManager(this@ResumenCobrosActivity).diaLimitePago
                 val resultado = withContext(Dispatchers.Default) {
                     CobroCalculator.calcularResumenMensual(
                         mes = mes,
                         factura = factura,
                         submedidores = submedidores,
                         lecturas = lecturas,
-                        inquilinos = inquilinos
+                        inquilinos = inquilinos,
+                        diaLimitePago = diaLimite
                     )
                 }
 
