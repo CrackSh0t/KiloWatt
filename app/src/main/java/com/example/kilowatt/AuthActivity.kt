@@ -3,66 +3,66 @@ package com.example.kilowatt
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.kilowatt.data.AuthRepository
 import com.example.kilowatt.databinding.ActivityAuthBinding
+import kotlinx.coroutines.launch
 
 class AuthActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAuthBinding
     private val authRepository = AuthRepository()
+    private val viewModel: AuthViewModel by viewModels {
+        AuthViewModel.Factory(authRepository)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Si ya hay usuario con sesión activa, saltar al MainActivity
-        if (authRepository.usuarioActual != null) {
-            irAMainActivity()
-            return
-        }
+        observarEstadoViewModel()
 
         binding.btnLogin.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            val pass = binding.etPassword.text.toString().trim()
-
-            if (email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            authRepository.iniciarSesion(email, pass) { exito, error ->
-                if (exito) {
-                    irAMainActivity()
-                } else {
-                    Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
-                }
-            }
+            val email = binding.etEmail.text.toString()
+            val pass = binding.etPassword.text.toString()
+            viewModel.iniciarSesion(email, pass)
         }
 
         binding.btnRegister.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            val pass = binding.etPassword.text.toString().trim()
-
-            if (email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            authRepository.registrarUsuario(email, pass) { exito, error ->
-                if (exito) {
-                    Toast.makeText(this, "Cuenta creada con éxito", Toast.LENGTH_SHORT).show()
-                    irAMainActivity()
-                } else {
-                    Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
-                }
-            }
+            val email = binding.etEmail.text.toString()
+            val pass = binding.etPassword.text.toString()
+            viewModel.registrarUsuario(email, pass)
         }
 
         binding.tvForgotPassword.setOnClickListener {
             val emailIngresado = binding.etEmail.text.toString().trim()
             mostrarDialogoRecuperacion(emailIngresado)
+        }
+    }
+
+    private fun observarEstadoViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    when (state) {
+                        is AuthUiState.Autenticado -> {
+                            irAMainActivity()
+                        }
+                        is AuthUiState.Error -> {
+                            Toast.makeText(this@AuthActivity, state.mensaje, Toast.LENGTH_LONG).show()
+                        }
+                        is AuthUiState.MensajeRecuperacion -> {
+                            Toast.makeText(this@AuthActivity, state.mensaje, Toast.LENGTH_LONG).show()
+                        }
+                        else -> {}
+                    }
+                }
+            }
         }
     }
 
@@ -86,23 +86,8 @@ class AuthActivity : AppCompatActivity() {
             .setMessage(R.string.dialog_forgot_password_msg)
             .setView(container)
             .setPositiveButton(R.string.btn_send) { _, _ ->
-                val emailParaEnviar = inputEditText.text.toString().trim()
-                if (emailParaEnviar.isEmpty()) {
-                    Toast.makeText(this, getString(R.string.msg_recovery_email_empty), Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-
-                authRepository.enviarCorreoRecuperacion(emailParaEnviar) { exito, error ->
-                    if (exito) {
-                        Toast.makeText(
-                            this,
-                            getString(R.string.msg_recovery_email_sent, emailParaEnviar),
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    } else {
-                        Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
-                    }
-                }
+                val emailParaEnviar = inputEditText.text.toString()
+                viewModel.enviarCorreoRecuperacion(emailParaEnviar)
             }
             .setNegativeButton(R.string.btn_cancel, null)
             .show()

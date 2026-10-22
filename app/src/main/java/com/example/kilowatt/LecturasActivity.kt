@@ -5,20 +5,17 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import com.example.kilowatt.data.FacturaGeneral
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.kilowatt.data.InquilinoRepository
-import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.LecturaRepository
 import com.example.kilowatt.data.Submedidor
 import com.example.kilowatt.databinding.ActivityLecturasBinding
-import com.example.kilowatt.util.CobroCalculator
-import com.example.kilowatt.util.ValidacionLecturaResult
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 class LecturasActivity : AppCompatActivity() {
 
@@ -26,9 +23,15 @@ class LecturasActivity : AppCompatActivity() {
     private val lecturaRepository = LecturaRepository()
     private val inquilinoRepository = InquilinoRepository()
 
+    private val viewModel: LecturasViewModel by viewModels {
+        LecturasViewModel.Factory(lecturaRepository, inquilinoRepository)
+    }
+
     private var listaSubmedidores: List<Submedidor> = emptyList()
     private var spinnerAdapter: ArrayAdapter<String>? = null
     private val nombresSubmedidores = mutableListOf<String>()
+
+    private var isUpdatingFieldsFromState = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,18 +42,29 @@ class LecturasActivity : AppCompatActivity() {
         supportActionBar?.title = "Registrador de Lecturas"
 
         setupSpinner()
-        cargarSubmedidoresEnSpinner()
+        observarEstadoViewModel()
 
         binding.etMesPeriodo.addTextChangedListener {
-            cargarLecturaPreviaDelSubmedidor()
+            if (!isUpdatingFieldsFromState) {
+                solicitarLecturaPrevia()
+            }
         }
 
         binding.btnGuardarFactura.setOnClickListener {
-            guardarFacturaGeneral()
+            val mes = binding.etMesPeriodo.text.toString()
+            val monto = binding.etMontoTotalSoles.text.toString()
+            val kwh = binding.etKwhTotales.text.toString()
+            viewModel.guardarFacturaGeneral(mes, monto, kwh)
         }
 
         binding.btnCalcularYGuardar.setOnClickListener {
-            calcularYGuardarLectura()
+            val mes = binding.etMesPeriodo.text.toString()
+            val lecAnt = binding.etLecturaAnterior.text.toString()
+            val lecAct = binding.etLecturaActual.text.toString()
+            val pos = binding.spSubmedidores.selectedItemPosition
+            val submedidor = if (pos in listaSubmedidores.indices) listaSubmedidores[pos] else null
+
+            viewModel.calcularYGuardarLectura(mes, lecAnt, lecAct, submedidor)
         }
     }
 
@@ -63,172 +77,78 @@ class LecturasActivity : AppCompatActivity() {
         spinnerAdapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
-            nombresSubmedidores
+            nombresSubmedidores,
         )
         binding.spSubmedidores.adapter = spinnerAdapter
 
         binding.spSubmedidores.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                cargarLecturaPreviaDelSubmedidor()
+                if (!isUpdatingFieldsFromState) {
+                    solicitarLecturaPrevia()
+                }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
-    private fun cargarSubmedidoresEnSpinner() {
-        lifecycleScope.launch {
-            inquilinoRepository.obtenerSubmedidoresFlow().collect { lista ->
-                val nuevosNombres = lista.map { it.nombreEspacio }
-                val posActual = binding.spSubmedidores.selectedItemPosition
-
-                listaSubmedidores = lista
-                nombresSubmedidores.clear()
-                nombresSubmedidores.addAll(nuevosNombres)
-                spinnerAdapter?.notifyDataSetChanged()
-
-                if (posActual >= 0 && posActual < nuevosNombres.size) {
-                    binding.spSubmedidores.setSelection(posActual)
-                }
-            }
-        }
-    }
-
-    private fun cargarLecturaPreviaDelSubmedidor() {
-        val mes = binding.etMesPeriodo.text.toString().trim()
+    private fun solicitarLecturaPrevia() {
+        val mes = binding.etMesPeriodo.text.toString()
         val pos = binding.spSubmedidores.selectedItemPosition
-        if (mes.isEmpty() || pos < 0 || pos >= listaSubmedidores.size) return
+        val submedidor = if (pos in listaSubmedidores.indices) listaSubmedidores[pos] else null
+        viewModel.cargarLecturaPreviaSubmedidor(mes, submedidor)
+    }
 
-        val submedidor = listaSubmedidores[pos]
-
+    private fun observarEstadoViewModel() {
         lifecycleScope.launch {
-            try {
-                val lecturas = lecturaRepository.obtenerLecturasPorMesFlow(mes).first()
-                val lecturaPrev = lecturas.find { it.idSubmedidor == submedidor.idSubmedidor }
-
-                if (lecturaPrev != null) {
-                    binding.etLecturaAnterior.setText(lecturaPrev.lecturaAnterior.toString())
-                    binding.etLecturaActual.setText(lecturaPrev.lecturaActual.toString())
-                } else {
-                    binding.etLecturaAnterior.setText("")
-                    binding.etLecturaActual.setText("")
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    actualizarUi(state)
                 }
-            } catch (e: Exception) {
-                // Silently handle read errors
             }
         }
     }
 
-    private fun guardarFacturaGeneral() {
-        val mes = binding.etMesPeriodo.text.toString().trim()
-        val montoStr = binding.etMontoTotalSoles.text.toString().trim()
-        val kwhStr = binding.etKwhTotales.text.toString().trim()
+    private fun actualizarUi(state: LecturasUiState) {
+        binding.btnGuardarFactura.isEnabled = !state.estaGuardandoReciboBase
+        binding.btnCalcularYGuardar.isEnabled = !state.estaGuardandoLectura
 
-        if (mes.isEmpty() || montoStr.isEmpty() || kwhStr.isEmpty()) {
-            Toast.makeText(this, "Completa los datos del recibo base", Toast.LENGTH_SHORT).show()
-            return
-        }
+        // Actualizar Spinner
+        if (state.submedidoresDisponibles != listaSubmedidores) {
+            val posActual = binding.spSubmedidores.selectedItemPosition
+            listaSubmedidores = state.submedidoresDisponibles
+            val nuevosNombres = state.submedidoresDisponibles.map { it.nombreEspacio }
 
-        binding.btnGuardarFactura.isEnabled = false
+            nombresSubmedidores.clear()
+            nombresSubmedidores.addAll(nuevosNombres)
+            spinnerAdapter?.notifyDataSetChanged()
 
-        val factura = FacturaGeneral(
-            idFactura = mes,
-            mesPeriodo = mes,
-            montoTotalSoles = montoStr.toDoubleOrNull() ?: 0.0,
-            kwhTotalesRecibo = kwhStr.toDoubleOrNull() ?: 0.0,
-        )
-
-        lifecycleScope.launch {
-            try {
-                val (exito, error) = lecturaRepository.guardarFactura(factura)
-                if (exito) {
-                    Toast.makeText(this@LecturasActivity, "¡Recibo Base guardado para $mes!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@LecturasActivity, "Error al guardar recibo: $error", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(this@LecturasActivity, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-            } finally {
-                binding.btnGuardarFactura.isEnabled = true
+            if (posActual >= 0 && posActual < nuevosNombres.size) {
+                binding.spSubmedidores.setSelection(posActual)
             }
         }
-    }
 
-    private fun calcularYGuardarLectura() {
-        val mes = binding.etMesPeriodo.text.toString().trim()
-        val lecAntStr = binding.etLecturaAnterior.text.toString().trim()
-        val lecActStr = binding.etLecturaActual.text.toString().trim()
-
-        if (mes.isEmpty() || lecAntStr.isEmpty() || lecActStr.isEmpty() || listaSubmedidores.isEmpty()) {
-            Toast.makeText(this, "Ingresa las lecturas e indica el mes exacto", Toast.LENGTH_SHORT).show()
-            return
+        // Actualizar lecturas en pantalla si cambió la lectura previa
+        isUpdatingFieldsFromState = true
+        val prev = state.ultimaLecturaSubmedidor
+        if (prev != null) {
+            binding.etLecturaAnterior.setText(prev.lecturaAnterior.toString())
+            binding.etLecturaActual.setText(prev.lecturaActual.toString())
         }
+        isUpdatingFieldsFromState = false
 
-        val posicionSeleccionada = binding.spSubmedidores.selectedItemPosition
-        if (posicionSeleccionada < 0 || posicionSeleccionada >= listaSubmedidores.size) {
-            Toast.makeText(this, "Selecciona un medidor válido", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val submedidorSeleccionado = listaSubmedidores[posicionSeleccionada]
+        // Notificaciones Toast/Snackbar
+        state.mensajeNotificacion?.let { msj ->
+            Toast.makeText(this, msj, if (state.esError) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 
-        val lecAnt = lecAntStr.toDoubleOrNull() ?: 0.0
-        val lecAct = lecActStr.toDoubleOrNull() ?: 0.0
-
-        val validacion = CobroCalculator.validarLecturas(lecAnt, lecAct)
-        if (validacion is ValidacionLecturaResult.Invalido) {
-            Toast.makeText(this, validacion.mensaje, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        binding.btnCalcularYGuardar.isEnabled = false
-
-        lifecycleScope.launch {
-            try {
-                val facturas = lecturaRepository.obtenerFacturasFlow().first()
-                val facturaMes = facturas.find { it.mesPeriodo.trim().equals(mes, ignoreCase = true) }
-
-                if (facturaMes == null) {
-                    Toast.makeText(this@LecturasActivity, "Primero debes guardar el Recibo Base de este mes ($mes)", Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-
-                val lecturasDelMes = lecturaRepository.obtenerLecturasPorMesFlow(mes).first()
-                val lecturaExistente = lecturasDelMes.find { it.idSubmedidor == submedidorSeleccionado.idSubmedidor }
-
-                val (consumoKwh, montoPagar) = CobroCalculator.calcularConsumoYMontoIndividual(
-                    lecturaAnterior = lecAnt,
-                    lecturaActual = lecAct,
-                    montoTotalRecibo = facturaMes.montoTotalSoles,
-                    kwhTotalesRecibo = facturaMes.kwhTotalesRecibo
-                )
-
-                val nuevaLectura = Lectura(
-                    idLectura = lecturaExistente?.idLectura.takeIf { !it.isNullOrEmpty() } ?: UUID.randomUUID().toString(),
-                    idSubmedidor = submedidorSeleccionado.idSubmedidor,
-                    mesPeriodo = mes,
-                    lecturaAnterior = lecAnt,
-                    lecturaActual = lecAct,
-                    consumoKwh = consumoKwh,
-                    montoPagarSoles = montoPagar,
-                )
-
-                val (exito, error) = lecturaRepository.guardarLectura(nuevaLectura)
-                if (exito) {
-                    val msj = "Guardado: %.1f kWh | Total: S/ %.2f".format(consumoKwh, montoPagar)
-                    Toast.makeText(this@LecturasActivity, msj, Toast.LENGTH_LONG).show()
-
-                    binding.etLecturaAnterior.text?.clear()
-                    binding.etLecturaActual.text?.clear()
-                    binding.etLecturaAnterior.clearFocus()
-                    binding.etLecturaActual.clearFocus()
-                } else {
-                    Toast.makeText(this@LecturasActivity, "Error al guardar lectura: $error", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(this@LecturasActivity, "Error al procesar lectura: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-            } finally {
-                binding.btnCalcularYGuardar.isEnabled = true
+            if (!state.esError) {
+                binding.etLecturaAnterior.text?.clear()
+                binding.etLecturaActual.text?.clear()
+                binding.etLecturaAnterior.clearFocus()
+                binding.etLecturaActual.clearFocus()
             }
+
+            viewModel.consumirNotificacion()
         }
     }
 }

@@ -46,12 +46,12 @@ Patrón por capas centrado en Android y Firebase:
 ---
 
 ## 4. Funcionalidades Implementadas
-* **Autenticación (`AuthActivity`):** Registro e inicio de sesión con Firebase Auth; control de sesión activa.
+* **Autenticación (`AuthActivity`):** Registro, inicio de sesión y recuperación de contraseña por correo vía Firebase Auth (`sendPasswordResetEmail`); control de sesión activa.
 * **Navegación (`MainActivity`):** Enrutamiento principal del sistema.
 * **Configuración (`ConfiguracionActivity`):** CRUD de inquilinos y submedidores en Firestore; guardado de datos de cobro en `SettingsManager`.
 * **Registro de Lecturas (`LecturasActivity`):** Alta de recibo matriz mensual (S/ y kWh) y registro de lecturas por submedidor.
 * **Cálculo de Consumos (`CobroCalculator`):** Validación de consistencia (no negativos, monotonía creciente), costo unitario prorrateado y reparto de áreas comunes.
-* **Cobros y Notificaciones (`ResumenCobrosActivity`, `CobroAdapter`):** Visualización de balances mensuales, redacción y apertura de WhatsApp con desglose de cobro, y generación/compartido de PDFs individuales y consolidados (`PdfGenerator`).
+* **Cobros y Notificaciones (`ResumenCobrosActivity`, `CobroAdapter`):** Visualización de balances mensuales, gestión de cobranza persistente (`PENDIENTE`, `PAGADO` con auditoría de fecha/medio, y `VENCIDO` evaluado dinámicamente), redacción y apertura de WhatsApp con desglose de cobro, y generación/compartido de PDFs individuales y consolidados (`PdfGenerator`).
 
 ---
 
@@ -60,16 +60,14 @@ Patrón por capas centrado en Android y Firebase:
 * **Inyección de Dependencias Manual:** Repositorios y managers se instancian a mano (`new Repository()`).
 * **Desacople de Room:** Entidades y DAOs de Room existen en `AppDatabase`, pero los repositorios activos interactúan directamente con Firestore sin sincronización bidireccional.
 * **Acoplamiento en Adapters:** `CobroAdapter` ejecuta generación de archivos PDF y dispatching de intents de Android.
-* **Sin seguimiento de estado de pagos:** No se registra si un cobro mensual ha sido pagado, pendiente o vencido.
-* **Sin recuperación de contraseña:** Falta flujo de reseteo de clave por correo.
 
 ---
 
 ## 6. Funcionalidades Pendientes y Roadmap
 1. **Fase 1 (Arquitectura):** Migración a MVVM (`ViewModel` + `StateFlow`), integración de DI (Hilt/Koin) y desacoplamiento de adaptadores.
 2. **Fase 2 (Offline-First):** Sincronización Room + Firestore (WorkManager) y validaciones telefónicas E.164.
-3. **Fase 3 (Pagos y Métricas):** Estados de pago (`Pendiente`, `Pagado`, `Vencido`) y gráficos históricos de consumo.
-4. **Fase 4 (UX):** Recuperación de contraseña, personalización de recibos (logos/firmas) y soporte para tema oscuro.
+3. **Fase 3 (Pagos y Métricas):** Pagos parciales y gráficos históricos de consumo.
+4. **Fase 4 (UX):** Personalización de recibos (logos/firmas) y soporte para tema oscuro.
 
 ---
 

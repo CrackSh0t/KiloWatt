@@ -6,13 +6,13 @@ import android.content.SharedPreferences
 class SettingsManager(context: Context) : ISettingsManager {
     private val prefs: SharedPreferences = context.getSharedPreferences("kilowatt_prefs", Context.MODE_PRIVATE)
 
-    var nombrePropietario: String
+    override var nombrePropietario: String
         get() = prefs.getString("propietario_nombre", "") ?: ""
         set(value) {
             prefs.edit().putString("propietario_nombre", value).apply()
         }
 
-    var numeroPago: String
+    override var numeroPago: String
         get() = prefs.getString("pago_numero", "") ?: ""
         set(value) {
             prefs.edit().putString("pago_numero", value).apply()

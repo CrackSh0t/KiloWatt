@@ -3,14 +3,14 @@ package com.example.kilowatt.data
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 
-class AuthRepository {
+class AuthRepository : IAuthRepository {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
-    val usuarioActual: FirebaseUser?
+    override val usuarioActual: FirebaseUser?
         get() = auth.currentUser
 
-    fun registrarUsuario(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
+    override fun registrarUsuario(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
         auth.createUserWithEmailAndPassword(email, pass)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -21,7 +21,7 @@ class AuthRepository {
             }
     }
 
-    fun iniciarSesion(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
+    override fun iniciarSesion(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
         auth.signInWithEmailAndPassword(email, pass)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
@@ -32,11 +32,11 @@ class AuthRepository {
             }
     }
 
-    fun cerrarSesion() {
+    override fun cerrarSesion() {
         auth.signOut()
     }
 
-    fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {
+    override fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {
         auth.sendPasswordResetEmail(email)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
