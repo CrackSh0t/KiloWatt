@@ -46,6 +46,9 @@ Registro periódico de la medición de energía registrada por un submedidor ind
   - `lecturaAnterior`: `Double` — Valor del contador en kWh al inicio del periodo.
   - `lecturaActual`: `Double` — Valor del contador en kWh al final del periodo.
   - `consumoKwh`: `Double` — Consumo neto del periodo (`lecturaActual - lecturaAnterior`).
+  - `estadoPago`: `String` — Estado de cobranza (`"PENDIENTE"`, `"PAGADO"` o `"VENCIDO"` evaluado dinámicamente).
+  - `fechaPago`: `Long?` — Fecha/timestamp del registro de pago.
+  - `metodoPago`: `String?` — Medio de recepción del pago (`"Yape"`, `"Plin"`, `"Efectivo"`, `"Transferencia Bancaria"`).
 
 ---
 
@@ -89,6 +92,9 @@ Documentos con lecturas mensuales por submedidor.
   - `lecturaAnterior`: `Double`
   - `lecturaActual`: `Double`
   - `consumoKwh`: `Double`
+  - `estadoPago`: `String` ("PENDIENTE" | "PAGADO")
+  - `fechaPago`: `Long?` (milisegundos)
+  - `metodoPago`: `String?` ("Yape", "Plin", "Efectivo", "Transferencia Bancaria")
 
 ### 2.5. Documento `usuarios/{uid}/perfil/datos_pago`
 Información de cobranza y perfil del arrendador.
@@ -121,7 +127,9 @@ Representa el desglose financiero individual a cobrar a cada inquilino o espacio
 - `montoAreaComunSoles`: `Double` (Cuota prorrateada asignada de áreas comunes)
 - `montoConsumoPropioSoles`: `Double` (Gasto individual por consumo propio)
 - `montoPagarSoles`: `Double` (`montoConsumoPropioSoles + montoAreaComunSoles`)
-- `estadoPago`: `String` ("Pendiente", "Pagado", "Sin Lectura")
+- `estadoPago`: `String` ("PENDIENTE" | "PAGADO")
+- `fechaPago`: `Long?` (milisegundos)
+- `metodoPago`: `String?` ("Yape", "Plin", "Efectivo", "Transferencia Bancaria")
 
 ### 3.3. `ResumenCobroResult`
 Resultado del cálculo integral de prorrateo mensual procesado por `CobroCalculator`.
@@ -133,7 +141,13 @@ Resultado del cálculo integral de prorrateo mensual procesado por `CobroCalcula
 - `cuotaAreaComunPorInquilino`: `Double`
 - `detalles`: `List<DetalleCobro>`
 
-### 3.4. `ValidacionLecturaResult`
+### 3.4. DTOs de Historial y Gráficos (`ConsumoHistorico.kt`)
+Estructuras para series de tiempo y ordenamiento cronológico por submedidor e inmueble:
+- `PuntoHistorico`: `mesPeriodo: String`, `fechaSort: Date?`, `consumoKwh: Double`, `montoSoles: Double`.
+- `HistoricoSubmedidor`: `idSubmedidor: String`, `nombreEspacio: String`, `nombreInquilino: String`, `puntos: List<PuntoHistorico>`.
+- `ConsumoHistoricoResult`: `puntosInmuebleMatriz: List<PuntoHistorico>`, `historicoPorSubmedidor: List<HistoricoSubmedidor>`, `promedioKwhMensual: Double`, `mesMayorConsumo: String?`.
+
+### 3.5. `ValidacionLecturaResult`
 Tipo algebraico sellado para validación de consistencia de lecturas.
 - `Valido`: Estado exitoso.
 - `Invalido(mensaje: String)`: Estado de error con descripción del problema.

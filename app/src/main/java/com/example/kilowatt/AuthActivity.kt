@@ -12,13 +12,13 @@ import com.example.kilowatt.data.AuthRepository
 import com.example.kilowatt.databinding.ActivityAuthBinding
 import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 class AuthActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAuthBinding
-    private val authRepository = AuthRepository()
-    private val viewModel: AuthViewModel by viewModels {
-        AuthViewModel.Factory(authRepository)
-    }
+    private val viewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

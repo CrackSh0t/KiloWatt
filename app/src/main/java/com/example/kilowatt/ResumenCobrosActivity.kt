@@ -22,15 +22,14 @@ import com.example.kilowatt.util.PdfGenerator
 import com.example.kilowatt.util.SettingsManager
 import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 class ResumenCobrosActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityResumenCobrosBinding
-    private val lecturaRepository = LecturaRepository()
-    private val inquilinoRepository = InquilinoRepository()
 
-    private val viewModel: ResumenCobrosViewModel by viewModels {
-        ResumenCobrosViewModel.Factory(lecturaRepository, inquilinoRepository, SettingsManager(this))
-    }
+    private val viewModel: ResumenCobrosViewModel by viewModels()
 
     private lateinit var adapter: CobroAdapter
     private var spinnerAdapter: ArrayAdapter<String>? = null

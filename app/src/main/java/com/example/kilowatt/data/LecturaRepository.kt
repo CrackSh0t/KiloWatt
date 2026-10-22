@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-class LecturaRepository : ILecturaRepository {
+import javax.inject.Inject
+
+class LecturaRepository @Inject constructor() : ILecturaRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()

@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-class InquilinoRepository : IInquilinoRepository {
+import javax.inject.Inject
+
+class InquilinoRepository @Inject constructor() : IInquilinoRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()

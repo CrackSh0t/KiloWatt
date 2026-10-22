@@ -19,6 +19,9 @@ import com.example.kilowatt.util.SettingsManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 class ConfiguracionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityConfiguracionBinding
@@ -27,9 +30,7 @@ class ConfiguracionActivity : AppCompatActivity() {
     private lateinit var authRepository: AuthRepository
     private lateinit var settingsManager: SettingsManager
 
-    private val viewModel: ConfiguracionViewModel by viewModels {
-        ConfiguracionViewModel.Factory(repository, settingsManager)
-    }
+    private val viewModel: ConfiguracionViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

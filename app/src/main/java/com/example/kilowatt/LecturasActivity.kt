@@ -17,15 +17,14 @@ import com.example.kilowatt.data.Submedidor
 import com.example.kilowatt.databinding.ActivityLecturasBinding
 import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 class LecturasActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLecturasBinding
-    private val lecturaRepository = LecturaRepository()
-    private val inquilinoRepository = InquilinoRepository()
 
-    private val viewModel: LecturasViewModel by viewModels {
-        LecturasViewModel.Factory(lecturaRepository, inquilinoRepository)
-    }
+    private val viewModel: LecturasViewModel by viewModels()
 
     private var listaSubmedidores: List<Submedidor> = emptyList()
     private var spinnerAdapter: ArrayAdapter<String>? = null
