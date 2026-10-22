@@ -6,28 +6,31 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.kilowatt.data.DetalleCobro
 import com.example.kilowatt.data.FacturaGeneral
 import com.example.kilowatt.data.InquilinoRepository
 import com.example.kilowatt.data.LecturaRepository
 import com.example.kilowatt.databinding.ActivityResumenCobrosBinding
-import com.example.kilowatt.util.CobroCalculator
 import com.example.kilowatt.util.PdfGenerator
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.combine
+import com.example.kilowatt.util.SettingsManager
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class ResumenCobrosActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityResumenCobrosBinding
     private val lecturaRepository = LecturaRepository()
     private val inquilinoRepository = InquilinoRepository()
+
+    private val viewModel: ResumenCobrosViewModel by viewModels {
+        ResumenCobrosViewModel.Factory(lecturaRepository, inquilinoRepository, SettingsManager(this))
+    }
 
     private lateinit var adapter: CobroAdapter
     private var spinnerAdapter: ArrayAdapter<String>? = null
@@ -37,7 +40,7 @@ class ResumenCobrosActivity : AppCompatActivity() {
     private var facturaActual: FacturaGeneral? = null
     private var detallesActuales: List<DetalleCobro> = emptyList()
 
-    private var jobCargarDatosMes: Job? = null
+    private var isSpinnerInitializing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +52,7 @@ class ResumenCobrosActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupSpinner()
-        cargarMesesEnSpinner()
+        observarEstadoViewModel()
 
         binding.btnExportarReportePdf.setOnClickListener {
             exportarReporteGeneral()
@@ -62,12 +65,82 @@ class ResumenCobrosActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = CobroAdapter { detalle ->
-            cambiarEstadoPago(detalle)
-        }
+        adapter = CobroAdapter(
+            onSendWhatsAppClicked = { detalle ->
+                enviarMensajeWhatsapp(detalle)
+            },
+            onGeneratePdfClicked = { detalle ->
+                exportarPdfIndividual(detalle)
+            },
+            onEstadoChange = { detalle ->
+                cambiarEstadoPago(detalle)
+            },
+        )
         binding.rvResumenCobros.apply {
             layoutManager = LinearLayoutManager(this@ResumenCobrosActivity)
             adapter = this@ResumenCobrosActivity.adapter
+        }
+    }
+
+    private fun observarEstadoViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    actualizarUi(state)
+                }
+            }
+        }
+    }
+
+    private fun actualizarUi(state: ResumenCobrosUiState) {
+        facturaActual = state.facturaActual
+        detallesActuales = state.detalles
+        mesActualSeleccionado = state.mesSeleccionado
+
+        binding.tvReciboTotalGlobal.text = "S/ %.2f".format(state.montoTotalRecibo)
+        binding.tvKwhTotalesGlobal.text = "%.1f kWh".format(state.kwhReciboPrincipal)
+        binding.tvPrecioKwhGlobal.text = "S/ %.2f".format(state.precioKwhPromedio)
+
+        adapter.actualizarLista(state.detalles)
+
+        // Actualizar Spinner de meses si cambió la lista
+        if (state.listaMesesDisponibles != listaMesesDisponibles) {
+            isSpinnerInitializing = true
+            listaMesesDisponibles.clear()
+            listaMesesDisponibles.addAll(state.listaMesesDisponibles)
+            spinnerAdapter?.notifyDataSetChanged()
+            isSpinnerInitializing = false
+
+            if (state.mesSeleccionado != null) {
+                val idx = state.listaMesesDisponibles.indexOf(state.mesSeleccionado)
+                if (idx >= 0 && binding.spMesesResumen.selectedItemPosition != idx) {
+                    isSpinnerInitializing = true
+                    binding.spMesesResumen.setSelection(idx)
+                    isSpinnerInitializing = false
+                }
+            }
+        }
+    }
+
+    private fun setupSpinner() {
+        spinnerAdapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            listaMesesDisponibles,
+        )
+        binding.spMesesResumen.adapter = spinnerAdapter
+
+        binding.spMesesResumen.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (!isSpinnerInitializing && position in listaMesesDisponibles.indices) {
+                    val mesSeleccionado = listaMesesDisponibles[position]
+                    if (mesSeleccionado != mesActualSeleccionado) {
+                        viewModel.seleccionarMes(mesSeleccionado)
+                    }
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
@@ -82,7 +155,9 @@ class ResumenCobrosActivity : AppCompatActivity() {
                 .setTitle(R.string.dialog_revertir_pago_title)
                 .setMessage(R.string.dialog_revertir_pago_msg)
                 .setPositiveButton("Revertir") { _, _ ->
-                    ejecutarCambioEstado(detalle.idLectura, "PENDIENTE", null, null)
+                    viewModel.actualizarEstadoPago(detalle, "PENDIENTE", null, null) { exito, error ->
+                        manejarResultadoPago(exito, error, "PENDIENTE")
+                    }
                 }
                 .setNegativeButton(R.string.btn_cancel, null)
                 .show()
@@ -98,118 +173,77 @@ class ResumenCobrosActivity : AppCompatActivity() {
                 .setPositiveButton(R.string.btn_send) { _, _ ->
                     val metodoElegido = metodos[seleccionIndice]
                     val fechaActual = System.currentTimeMillis()
-                    ejecutarCambioEstado(detalle.idLectura, "PAGADO", fechaActual, metodoElegido)
+                    viewModel.actualizarEstadoPago(detalle, "PAGADO", fechaActual, metodoElegido) { exito, error ->
+                        manejarResultadoPago(exito, error, "PAGADO")
+                    }
                 }
                 .setNegativeButton(R.string.btn_cancel, null)
                 .show()
         }
     }
 
-    private fun ejecutarCambioEstado(idLectura: String, nuevoEstado: String, fechaPago: Long?, metodoPago: String?) {
-        lifecycleScope.launch {
-            val (exito, error) = lecturaRepository.actualizarEstadoPago(idLectura, nuevoEstado, fechaPago, metodoPago)
+    private fun manejarResultadoPago(exito: Boolean, error: String?, nuevoEstado: String) {
+        if (!isFinishing && !isDestroyed) {
             if (exito) {
-                Toast.makeText(this@ResumenCobrosActivity, "Estado actualizado: $nuevoEstado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Estado actualizado: $nuevoEstado", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@ResumenCobrosActivity, "Error al actualizar: $error", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Error al actualizar: $error", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun setupSpinner() {
-        spinnerAdapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_dropdown_item,
-            listaMesesDisponibles
-        )
-        binding.spMesesResumen.adapter = spinnerAdapter
+    private fun enviarMensajeWhatsapp(cobro: DetalleCobro) {
+        val detalleAreaComun = if (cobro.montoAreaComunSoles > 0) {
+            "\n🏢 *Cuota Área Común:* S/ ${"%.2f".format(cobro.montoAreaComunSoles)}"
+        } else ""
 
-        binding.spMesesResumen.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (position in listaMesesDisponibles.indices) {
-                    val mesSeleccionado = listaMesesDisponibles[position]
-                    if (mesSeleccionado != mesActualSeleccionado) {
-                        cargarDatosDelMes(mesSeleccionado)
-                    }
-                }
-            }
+        val mensaje = """
+        ⚡ *RESUMEN DE CONSUMO DE LUZ - KILOWATT*
+        📅 *Periodo:* ${cobro.mesPeriodo}
+        👤 *Inquilino:* ${cobro.nombreInquilino} (${cobro.nombreEspacio})
+        
+        🔹 *Lectura Anterior:* ${"%.1f".format(cobro.lecturaAnterior)} kWh
+        🔹 *Lectura Actual:* ${"%.1f".format(cobro.lecturaActual)} kWh
+        ⚡ *Consumo Propio:* ${"%.1f".format(cobro.consumoKwh)} kWh (S/ ${"%.2f".format(cobro.consumoKwh * cobro.precioKwh)})$detalleAreaComun
+        💵 *Precio x kWh:* S/ ${"%.2f".format(cobro.precioKwh)}
+        
+        💰 *TOTAL A PAGAR:* *S/ ${"%.2f".format(cobro.montoPagarSoles)}*
+        
+        Por favor realizar el Yape/Plin o transferencia al número acostumbrado. ¡Muchas gracias!
+        """.trimIndent()
 
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        try {
+            val intent = Intent(Intent.ACTION_VIEW)
+            val url = "https://api.whatsapp.com/send?phone=51${cobro.telefonoWhatsapp}&text=" + java.net.URLEncoder.encode(mensaje, "UTF-8")
+            intent.data = android.net.Uri.parse(url)
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "No se pudo abrir WhatsApp", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun cargarMesesEnSpinner() {
+    private fun exportarPdfIndividual(cobro: DetalleCobro) {
+        Toast.makeText(this, "Generando PDF...", Toast.LENGTH_SHORT).show()
+
         lifecycleScope.launch {
-            lecturaRepository.obtenerFacturasFlow().collect { facturas ->
-                val nuevosMeses = facturas.map { it.mesPeriodo.trim() }.distinct()
+            try {
+                val generator = PdfGenerator(this@ResumenCobrosActivity)
+                val file = generator.generarComprobanteIndividual(cobro)
 
-                if (nuevosMeses.isNotEmpty() && nuevosMeses != listaMesesDisponibles) {
-                    val mesPrevio = mesActualSeleccionado
-                    listaMesesDisponibles.clear()
-                    listaMesesDisponibles.addAll(nuevosMeses)
-                    spinnerAdapter?.notifyDataSetChanged()
-
-                    val indicePrevio = if (mesPrevio != null) nuevosMeses.indexOf(mesPrevio) else -1
-                    if (indicePrevio >= 0) {
-                        binding.spMesesResumen.setSelection(indicePrevio)
-                    } else {
-                        binding.spMesesResumen.setSelection(0)
-                        val mesInicial = nuevosMeses[0]
-                        mesActualSeleccionado = mesInicial
-                        cargarDatosDelMes(mesInicial)
+                if (file != null && file.exists()) {
+                    val uri = FileProvider.getUriForFile(this@ResumenCobrosActivity, "$packageName.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
+                    startActivity(Intent.createChooser(intent, "Compartir Comprobante PDF"))
+                } else {
+                    Toast.makeText(this@ResumenCobrosActivity, "Error al generar el PDF", Toast.LENGTH_SHORT).show()
                 }
+            } catch (e: Exception) {
+                Toast.makeText(this@ResumenCobrosActivity, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
-        }
-    }
-
-    private fun cargarDatosDelMes(mes: String) {
-        mesActualSeleccionado = mes
-        jobCargarDatosMes?.cancel()
-
-        jobCargarDatosMes = lifecycleScope.launch {
-            combine(
-                lecturaRepository.obtenerFacturasFlow(),
-                lecturaRepository.obtenerLecturasPorMesFlow(mes),
-                inquilinoRepository.obtenerSubmedidoresFlow(),
-                inquilinoRepository.obtenerInquilinosFlow()
-            ) { facturas, lecturas, submedidores, inquilinos ->
-                val factura = facturas.find { it.mesPeriodo.trim().equals(mes.trim(), ignoreCase = true) }
-                facturaActual = factura
-
-                if (factura == null) {
-                    withContext(Dispatchers.Main) {
-                        binding.tvReciboTotalGlobal.text = "S/ 0.00"
-                        binding.tvKwhTotalesGlobal.text = "0 kWh"
-                        binding.tvPrecioKwhGlobal.text = "S/ 0.00"
-                        detallesActuales = emptyList()
-                        adapter.actualizarLista(emptyList())
-                    }
-                    return@combine
-                }
-
-                // Ejecución del motor de cálculo en Dispatchers.Default fuera del hilo principal
-                val diaLimite = com.example.kilowatt.util.SettingsManager(this@ResumenCobrosActivity).diaLimitePago
-                val resultado = withContext(Dispatchers.Default) {
-                    CobroCalculator.calcularResumenMensual(
-                        mes = mes,
-                        factura = factura,
-                        submedidores = submedidores,
-                        lecturas = lecturas,
-                        inquilinos = inquilinos,
-                        diaLimitePago = diaLimite
-                    )
-                }
-
-                withContext(Dispatchers.Main) {
-                    binding.tvReciboTotalGlobal.text = "S/ %.2f".format(resultado.montoTotalRecibo)
-                    binding.tvKwhTotalesGlobal.text = "%.1f kWh".format(resultado.kwhReciboPrincipal)
-                    binding.tvPrecioKwhGlobal.text = "S/ %.2f".format(resultado.precioKwhPromedio)
-
-                    detallesActuales = resultado.detalles
-                    adapter.actualizarLista(resultado.detalles)
-                }
-            }.collect {}
         }
     }
 

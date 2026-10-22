@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-class LecturaRepository {
+class LecturaRepository : ILecturaRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
@@ -26,7 +26,7 @@ class LecturaRepository {
     private fun sanitizeDocId(docId: String): String = docId.trim().replace("/", "_").replace("\\", "_")
 
     // Guardar / Actualizar Recibo Base (Factura General)
-    suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> =
+    override suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> =
         suspendCancellableCoroutine { continuation ->
             try {
                 val fRef = facturasRef
@@ -52,7 +52,7 @@ class LecturaRepository {
         }
 
     // Guardar / Actualizar Lectura de un submedidor
-    suspend fun guardarLectura(lectura: Lectura): Pair<Boolean, String?> =
+    override suspend fun guardarLectura(lectura: Lectura): Pair<Boolean, String?> =
         suspendCancellableCoroutine { continuation ->
             try {
                 val lRef = lecturasRef
@@ -63,7 +63,7 @@ class LecturaRepository {
 
                 val lecturaLimpia = lectura.copy(
                     mesPeriodo = lectura.mesPeriodo.trim(),
-                    idLectura = sanitizeDocId(lectura.idLectura)
+                    idLectura = sanitizeDocId(lectura.idLectura),
                 )
 
                 lRef.document(lecturaLimpia.idLectura)
@@ -80,11 +80,11 @@ class LecturaRepository {
         }
 
     // Actualizar el estado y auditoría de pago de una lectura en Firestore
-    suspend fun actualizarEstadoPago(
+    override suspend fun actualizarEstadoPago(
         idLectura: String,
         nuevoEstado: String,
-        fechaPago: Long? = null,
-        metodoPago: String? = null
+        fechaPago: Long?,
+        metodoPago: String?,
     ): Pair<Boolean, String?> =
         suspendCancellableCoroutine { continuation ->
             try {
@@ -98,7 +98,7 @@ class LecturaRepository {
                 val updates = mapOf(
                     "estadoPago" to nuevoEstado,
                     "fechaPago" to fechaPago,
-                    "metodoPago" to metodoPago
+                    "metodoPago" to metodoPago,
                 )
 
                 lRef.document(docId)
@@ -115,7 +115,7 @@ class LecturaRepository {
         }
 
     // Escuchar todas las facturas generales guardadas
-    fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> = callbackFlow {
+    override fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> = callbackFlow {
         val fRef = facturasRef
         if (fRef == null) {
             trySend(emptyList())
@@ -135,7 +135,7 @@ class LecturaRepository {
     }
 
     // Escuchar lecturas asociadas a un periodo específico
-    fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> = callbackFlow {
+    override fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> = callbackFlow {
         val lRef = lecturasRef
         if (lRef == null) {
             trySend(emptyList())
@@ -157,7 +157,7 @@ class LecturaRepository {
     }
 
     // Escuchar todas las lecturas históricas guardadas del usuario
-    fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> = callbackFlow {
+    override fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> = callbackFlow {
         val lRef = lecturasRef
         if (lRef == null) {
             trySend(emptyList())

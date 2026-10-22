@@ -3,7 +3,7 @@ package com.example.kilowatt.util
 import android.content.Context
 import android.content.SharedPreferences
 
-class SettingsManager(context: Context) {
+class SettingsManager(context: Context) : ISettingsManager {
     private val prefs: SharedPreferences = context.getSharedPreferences("kilowatt_prefs", Context.MODE_PRIVATE)
 
     var nombrePropietario: String
@@ -18,7 +18,7 @@ class SettingsManager(context: Context) {
             prefs.edit().putString("pago_numero", value).apply()
         }
 
-    var diaLimitePago: Int
+    override var diaLimitePago: Int
         get() = prefs.getInt("pago_dia_limite", 5)
         set(value) {
             prefs.edit().putInt("pago_dia_limite", value).apply()

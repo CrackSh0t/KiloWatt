@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-class InquilinoRepository {
+class InquilinoRepository : IInquilinoRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
@@ -27,7 +27,7 @@ class InquilinoRepository {
         get() = uid?.let { db.collection("usuarios").document(it).collection("perfil") }
 
     // Guardar Inquilino y Submedidor (Suspend)
-    suspend fun guardarInquilinoYSubmedidor(
+    override suspend fun guardarInquilinoYSubmedidor(
         nombreCompleto: String,
         telefono: String,
         nombreEspacio: String,
@@ -86,7 +86,7 @@ class InquilinoRepository {
     }
 
     // Escuchar la lista de submedidores en tiempo real
-    fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> = callbackFlow {
+    override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> = callbackFlow {
         val subRef = submedidoresRef
         if (subRef == null) {
             trySend(emptyList())
@@ -106,7 +106,7 @@ class InquilinoRepository {
     }
 
     // Escuchar la lista de inquilinos en tiempo real
-    fun obtenerInquilinosFlow(): Flow<List<Inquilino>> = callbackFlow {
+    override fun obtenerInquilinosFlow(): Flow<List<Inquilino>> = callbackFlow {
         val inqRef = inquilinosRef
         if (inqRef == null) {
             trySend(emptyList())
@@ -126,7 +126,7 @@ class InquilinoRepository {
     }
 
     // Actualizar cambios en Inquilino y Submedidor
-    fun actualizarInquilinoYSubmedidor(
+    override fun actualizarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,
         onComplete: (Boolean, String?) -> Unit,
@@ -155,7 +155,7 @@ class InquilinoRepository {
     }
 
     // Eliminar registros
-    fun eliminarInquilinoYSubmedidor(
+    override fun eliminarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,
         onComplete: (Boolean, String?) -> Unit,
@@ -184,7 +184,7 @@ class InquilinoRepository {
     }
 
     // Guardar perfil del propietario en Firestore (Suspend)
-    suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?> =
+    override suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?> =
         suspendCancellableCoroutine { continuation ->
             try {
                 val pRef = perfilRef
@@ -212,7 +212,7 @@ class InquilinoRepository {
         }
 
     // Obtener perfil del propietario en tiempo real
-    fun obtenerPerfilPropietarioFlow(): Flow<Map<String, Any>?> = callbackFlow {
+    override fun obtenerPerfilPropietarioFlow(): Flow<Map<String, Any>?> = callbackFlow {
         val pRef = perfilRef
         if (pRef == null) {
             trySend(null)

@@ -167,6 +167,17 @@ class ConfiguracionActivity : AppCompatActivity() {
             return
         }
 
+        val telefonoLimpio = if (!esAreaComun && telefono.isNotEmpty()) {
+            val (valido, normalizado) = com.example.kilowatt.util.PhoneUtils.formatearYValidarWhatsApp(telefono)
+            if (!valido) {
+                Toast.makeText(this, "Número de WhatsApp inválido (Formato E.164, ej: +51987654321 o 987654321)", Toast.LENGTH_LONG).show()
+                return
+            }
+            normalizado
+        } else {
+            ""
+        }
+
         // Deshabilitar botón durante el envío a la nube
         binding.btnGuardarInquilino.isEnabled = false
 
@@ -174,7 +185,7 @@ class ConfiguracionActivity : AppCompatActivity() {
             try {
                 val (exito, error) = repository.guardarInquilinoYSubmedidor(
                     nombreCompleto = if (esAreaComun) "Área Común" else nombre,
-                    telefono = if (esAreaComun) "" else telefono,
+                    telefono = telefonoLimpio,
                     nombreEspacio = nombreEspacio,
                     esAreaComun = esAreaComun,
                     pagaAreaComun = if (esAreaComun) false else pagaAreaComun,
