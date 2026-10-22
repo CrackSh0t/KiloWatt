@@ -11,8 +11,10 @@ activityKtx = "1.8.2"
 constraintlayout = "2.1.4"
 ksp = "2.3.6"
 room = "2.8.5"
+mpandroidchart = "v3.1.0"
 
 [libraries]
+mpandroidchart = { module = "com.github.PhilJay:MPAndroidChart", version.ref = "mpandroidchart" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

@@ -45,5 +45,11 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, ConfiguracionActivity::class.java)
             startActivity(intent)
         }
+
+        // 4. Abrir Historial y Gráficos
+        binding.cardHistorialGraficos.setOnClickListener {
+            val intent = Intent(this, HistorialConsumoActivity::class.java)
+            startActivity(intent)
+        }
     }
 }

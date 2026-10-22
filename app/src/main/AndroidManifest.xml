@@ -36,6 +36,11 @@
             android:name=".ResumenCobrosActivity"
             android:exported="false" />
 
+        <!-- Historial y Gráficos de Consumo -->
+        <activity
+            android:name=".HistorialConsumoActivity"
+            android:exported="false" />
+
         <!-- Pantalla Principal pasa a ser de acceso interno -->
         <activity
             android:name=".MainActivity"

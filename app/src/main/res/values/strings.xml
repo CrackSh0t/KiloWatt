@@ -80,4 +80,14 @@
     <string name="dialog_revertir_pago_msg">¿Deseas marcar este cobro nuevamente como Pendiente?</string>
     <string name="label_pagado_el">Pagado el %1$s vía %2$s</string>
     <string name="label_vencio_el">Venció el %1$s</string>
+
+    <string name="title_historial_graficos">📈 Historial y Gráficos</string>
+    <string name="main_option_historial_title">4. Historial y Gráficos</string>
+    <string name="main_option_historial_desc">Tendencias globales y gráficos por espacio</string>
+    <string name="title_tendencia_inmueble">1. Tendencia General del Inmueble</string>
+    <string name="title_evolucion_submedidor">2. Evolución por Submedidor</string>
+    <string name="label_promedio_kwh">Promedio Mensual</string>
+    <string name="label_pico_maximo">Pico Máximo</string>
+    <string name="label_kwh_format">%1$.1f kWh</string>
+    <string name="msg_sin_datos_historicos">Ingresa lecturas en al menos un periodo para visualizar gráficos</string>
 </resources>

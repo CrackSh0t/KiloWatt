@@ -155,4 +155,24 @@ class LecturaRepository {
             }
         awaitClose { listener.remove() }
     }
+
+    // Escuchar todas las lecturas históricas guardadas del usuario
+    fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> = callbackFlow {
+        val lRef = lecturasRef
+        if (lRef == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = lRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            val lista = snapshot?.toObjects<Lectura>() ?: emptyList()
+            trySend(lista)
+        }
+        awaitClose { listener.remove() }
+    }
 }
