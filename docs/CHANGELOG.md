@@ -13,6 +13,16 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/
 - **Sincronización del Entorno de Construcción:** Configuración optimizada de Gradle para compatibilidad total con Kotlin 2.x y KSP2.
 
 ### Añadido
+- **Estandarización de TopAppBar M3, Formularios OutlinedBox y Ajustes en MPAndroidChart (Fase 4 Iteración 2 y Cierre Fase 4):**
+  - Implementación de `MaterialToolbar` unificada con botón de retorno `←` en `LecturasActivity`, `ResumenCobrosActivity` e `HistorialConsumoActivity`.
+  - Homogeneización de todos los formularios de entrada en `activity_lecturas.xml` al estilo `TextInputLayout.OutlinedBox`.
+  - Configuración de `extraBottomOffset = 15f` en los gráficos de `MPAndroidChart` (`HistorialConsumoActivity`) para evitar recortes en etiquetas de fecha.
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
+- **Centro de Perfil del Propietario y Simplificación de ConfiguracionActivity (Fase 4 Iteración 1):**
+  - Incorporación de botón/ícono Avatar en la cabecera superior de [`MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt) que despliega el diálogo Material 3 [`dialog_perfil_propietario.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_perfil_propietario.xml).
+  - Centralización del perfil de cobro (Titular, Yape/Plin, Día Límite), correo de cuenta y botón de Cierre de Sesión en el modal de Perfil.
+  - Simplificación de [`ConfiguracionActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt) y [`activity_configuracion.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_configuracion.xml) enfocándolas exclusivamente en "Inquilinos y Medidores".
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
 - **Sellos Visuales de Estado de Pago en UI (Fase 3 Iteración 2 y Cierre Fase 3 - CobroAdapter):**
   - Adición de tarjeta distintiva redondeada (`cardEstadoPago`) en [`item_cobro.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_cobro.xml).
   - Renderizado dinámico con fondos de alto contraste y etiquetas emojis (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`, `Sin Lectura ⚠️`) en [`CobroAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/CobroAdapter.kt).

@@ -31,4 +31,4 @@
 ---
 
 ## 3. Limitaciones y Deuda Técnica Detectada
-* **Fases 1, 2 y 3 Completadas al 100%:** MVVM, StateFlow, Hilt DI, Offline-First SSOT, personalización de comprobantes PDF y sellos de estado de pago en UI (`CobroAdapter`) y PDF completamente operativos respaldados por 36 pruebas unitarias en verde.
+* **Fases 1, 2, 3 y 4 Completadas al 100%:** MVVM, StateFlow, Dagger Hilt DI, Offline-First SSOT (Room + Firestore + WorkManager), Material Design 3 TopAppBars unificadas, formularios OutlinedBox y gráficos MPAndroidChart optimizados. Respaldado por 36 pruebas unitarias pasadas al 100%.

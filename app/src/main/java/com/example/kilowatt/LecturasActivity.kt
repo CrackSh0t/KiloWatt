@@ -1,7 +1,6 @@
 package com.example.kilowatt
 
 import android.os.Bundle
-import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -15,9 +14,8 @@ import com.example.kilowatt.data.InquilinoRepository
 import com.example.kilowatt.data.LecturaRepository
 import com.example.kilowatt.data.Submedidor
 import com.example.kilowatt.databinding.ActivityLecturasBinding
-import kotlinx.coroutines.launch
-
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LecturasActivity : AppCompatActivity() {
@@ -37,8 +35,12 @@ class LecturasActivity : AppCompatActivity() {
         binding = ActivityLecturasBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.topAppBar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Registrador de Lecturas"
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        binding.topAppBar.setNavigationOnClickListener {
+            finish()
+        }
 
         setupSpinner()
         observarEstadoViewModel()
@@ -81,7 +83,7 @@ class LecturasActivity : AppCompatActivity() {
         binding.spSubmedidores.adapter = spinnerAdapter
 
         binding.spSubmedidores.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
                 if (!isUpdatingFieldsFromState) {
                     solicitarLecturaPrevia()
                 }

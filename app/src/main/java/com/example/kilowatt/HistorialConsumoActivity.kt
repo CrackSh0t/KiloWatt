@@ -13,8 +13,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.kilowatt.data.ConsumoHistoricoResult
 import com.example.kilowatt.data.HistoricoSubmedidor
-import com.example.kilowatt.data.InquilinoRepository
-import com.example.kilowatt.data.LecturaRepository
 import com.example.kilowatt.data.PuntoHistorico
 import com.example.kilowatt.databinding.ActivityHistorialConsumoBinding
 import com.example.kilowatt.util.PeriodoDateUtils
@@ -26,9 +24,8 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
-import kotlinx.coroutines.launch
-
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class HistorialConsumoActivity : AppCompatActivity() {
@@ -46,8 +43,12 @@ class HistorialConsumoActivity : AppCompatActivity() {
         binding = ActivityHistorialConsumoBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.topAppBar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = getString(R.string.title_historial_graficos)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        binding.topAppBar.setNavigationOnClickListener {
+            finish()
+        }
 
         setupSpinner()
         configurarEstiloGraficoInmueble()
@@ -85,9 +86,7 @@ class HistorialConsumoActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     when (state) {
-                        is HistorialConsumoUiState.Cargando -> {
-                            // Muestra progreso si es necesario
-                        }
+                        is HistorialConsumoUiState.Cargando -> {}
                         is HistorialConsumoUiState.Exito -> {
                             resultadoActual = state.resultado
                             actualizarUi(state.resultado)
@@ -145,6 +144,7 @@ class HistorialConsumoActivity : AppCompatActivity() {
                 setDrawGridLines(false)
                 textColor = Color.parseColor("#757575")
                 granularity = 1f
+                extraBottomOffset = 15f
             }
 
             axisLeft.apply {
@@ -171,6 +171,7 @@ class HistorialConsumoActivity : AppCompatActivity() {
                 setDrawGridLines(false)
                 textColor = Color.parseColor("#757575")
                 granularity = 1f
+                extraBottomOffset = 15f
             }
 
             axisLeft.apply {

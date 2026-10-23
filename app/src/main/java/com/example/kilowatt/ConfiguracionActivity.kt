@@ -1,6 +1,5 @@
 package com.example.kilowatt
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Toast
@@ -10,31 +9,18 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.kilowatt.data.IAuthRepository
-import com.example.kilowatt.data.IInquilinoRepository
 import com.example.kilowatt.data.InquilinoConMedidor
 import com.example.kilowatt.databinding.ActivityConfiguracionBinding
 import com.example.kilowatt.databinding.DialogEditarInquilinoBinding
-import com.example.kilowatt.util.ISettingsManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class ConfiguracionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityConfiguracionBinding
     private lateinit var adapter: InquilinoAdapter
-
-    @Inject
-    lateinit var repository: IInquilinoRepository
-
-    @Inject
-    lateinit var authRepository: IAuthRepository
-
-    @Inject
-    lateinit var settingsManager: ISettingsManager
 
     private val viewModel: ConfiguracionViewModel by viewModels()
 
@@ -50,14 +36,6 @@ class ConfiguracionActivity : AppCompatActivity() {
             finish()
         }
 
-        binding.btnCerrarSesion.setOnClickListener {
-            authRepository.cerrarSesion()
-            val intent = Intent(this, AuthActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
-        }
-
         binding.btnGuardarInquilino.setOnClickListener {
             val nombre = binding.etNombreInquilino.text.toString()
             val telefono = binding.etTelefonoWhatsapp.text.toString()
@@ -66,14 +44,6 @@ class ConfiguracionActivity : AppCompatActivity() {
             val pagaAreaComun = binding.cbPagaAreaComun.isChecked
 
             viewModel.guardarDatosInquilino(nombre, telefono, espacio, esAreaComun, pagaAreaComun)
-        }
-
-        binding.btnGuardarDatosPropietario.setOnClickListener {
-            val nombre = binding.etNombrePropietario.text.toString()
-            val numero = binding.etNumeroPago.text.toString()
-            val dia = binding.etDiaLimitePago.text.toString()
-
-            viewModel.guardarDatosPropietario(nombre, numero, dia)
         }
     }
 
@@ -100,21 +70,9 @@ class ConfiguracionActivity : AppCompatActivity() {
 
     private fun actualizarUi(state: ConfiguracionUiState) {
         binding.btnGuardarInquilino.isEnabled = !state.estaGuardando
-        binding.btnGuardarDatosPropietario.isEnabled = !state.estaGuardando
 
         // Actualizar RecyclerView
         adapter.actualizarLista(state.listaInquilinos)
-
-        // Sincronizar campos de propietario si difieren
-        if (binding.etNombrePropietario.text.toString() != state.nombrePropietario) {
-            binding.etNombrePropietario.setText(state.nombrePropietario)
-        }
-        if (binding.etNumeroPago.text.toString() != state.numeroPago) {
-            binding.etNumeroPago.setText(state.numeroPago)
-        }
-        if (binding.etDiaLimitePago.text.toString() != state.diaLimitePago.toString()) {
-            binding.etDiaLimitePago.setText(state.diaLimitePago.toString())
-        }
 
         // Notificaciones
         state.mensajeNotificacion?.let { msj ->

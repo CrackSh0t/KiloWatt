@@ -46,6 +46,13 @@ class ResumenCobrosActivity : AppCompatActivity() {
         binding = ActivityResumenCobrosBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.topAppBar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        binding.topAppBar.setNavigationOnClickListener {
+            finish()
+        }
+
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Resumen de Cobros"
 

@@ -10,30 +10,50 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header Banner -->
-        <LinearLayout
+        <!-- Header Banner con Avatar de Perfil -->
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="28dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/main_header_title"
-                android:textSize="32sp"
-                android:textStyle="bold"
-                android:textColor="@color/purple_primary" />
+                android:layout_alignParentStart="true"
+                android:layout_marginEnd="8dp"
+                android:layout_toStartOf="@id/btnPerfilAvatar"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvUsuarioEmail"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/main_header_subtitle"
-                android:textSize="14sp"
-                android:textColor="@color/gray_secondary" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/main_header_title"
+                    android:textColor="@color/purple_primary"
+                    android:textSize="32sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvUsuarioEmail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/main_header_subtitle"
+                    android:textColor="@color/gray_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPerfilAvatar"
+                style="@style/Widget.Material3.Button.IconButton.Filled"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                app:backgroundTint="@color/purple_primary"
+                app:cornerRadius="24dp"
+                app:icon="@android:drawable/ic_menu_myplaces"
+                app:iconTint="@color/white" />
+        </RelativeLayout>
 
         <!-- Opción 1: Registrar Lecturas -->
         <com.google.android.material.card.MaterialCardView
@@ -49,17 +69,17 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:baselineAligned="false"
-                android:padding="20dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
                     android:text="⚡"
-                    android:textSize="36sp"
-                    android:layout_marginEnd="16dp" />
+                    android:textSize="36sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -78,8 +98,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/main_option_lecturas_desc"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_secondary" />
+                        android:textColor="@color/gray_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -98,17 +118,17 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:baselineAligned="false"
-                android:padding="20dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
                     android:text="📊"
-                    android:textSize="36sp"
-                    android:layout_marginEnd="16dp" />
+                    android:textSize="36sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -127,8 +147,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/main_option_resumen_desc"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_secondary" />
+                        android:textColor="@color/gray_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -147,17 +167,17 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:baselineAligned="false"
-                android:padding="20dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
                     android:text="⚙️"
-                    android:textSize="36sp"
-                    android:layout_marginEnd="16dp" />
+                    android:textSize="36sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -176,8 +196,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/main_option_config_desc"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_secondary" />
+                        android:textColor="@color/gray_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -196,17 +216,17 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:baselineAligned="false"
-                android:padding="20dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
                     android:text="📈"
-                    android:textSize="36sp"
-                    android:layout_marginEnd="16dp" />
+                    android:textSize="36sp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -225,8 +245,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/main_option_historial_desc"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray_secondary" />
+                        android:textColor="@color/gray_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

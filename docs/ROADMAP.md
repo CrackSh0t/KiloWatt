@@ -42,11 +42,17 @@ Este documento detalla las etapas de evolución, mejoras técnicas y nuevas func
 
 ---
 
-## Fase 4: Experiencia de Usuario y Documentación 📄
-- [x] **Recuperación de Contraseña:**
-  - Agregar enlace y flujo para envío de correo de restablecimiento de contraseña vía Firebase Auth.
-- [ ] **Plantillas de Comprobantes Personalizables:**
-  - Permitir adjuntar logo o firma digital del propietario en los comprobantes PDF.
-  - Opciones de personalización del mensaje de texto para WhatsApp.
-- [ ] **Modo Oscuro y Accesibilidad:**
-  - Revisión de contrastes y soporte completo para Material You / Dark Theme.
+## Fase 4: Rediseño Visual, UX Moderno & Polishing Material Design 3 🎨
+- [x] **Arquitectura de Información & Perfil del Propietario:**
+  - [x] Reubicar "Datos de Cobro" (Titular, Yape/Plin, Día Límite) desde `ConfiguracionActivity` al diálogo/pantalla "Perfil del Propietario" (al tocar Avatar en `MainActivity`).
+  - [x] Consolidar en la vista de Perfil: Datos de cobro del propietario, email de cuenta activa y botón "Cerrar Sesión".
+  - [x] Simplificar `ConfiguracionActivity` enfocándola al 100% en "Inquilinos y Medidores".
+- [x] **Estandarización de TopAppBar y Navegación:**
+  - [x] Implementar `TopAppBar` unificada en todas las pantallas secundarias con botón de retorno `←` consistente.
+- [x] **Refactorización UI con Material Design 3:**
+  - [x] Homogeneizar todos los formularios e inputs (`TextInputLayout`) al estilo `OutlinedBox`.
+  - [x] Optimizar la jerarquía visual de los botones "PDF" y "WhatsApp" en `ResumenCobrosActivity`.
+  - [x] Corregir padding y márgenes inferiores en los gráficos de `MPAndroidChart` (`HistorialConsumoActivity`) para evitar recortes de texto.
+- [x] **Soporte de Tema Oscuro (Dark Theme) & Accesibilidad:**
+  - [x] Recuperación de contraseña vía Firebase Auth en `AuthActivity`.
+  - [x] Revisión de contraste de colores, soporte completo para tema oscuro y accesibilidad (Material You).
