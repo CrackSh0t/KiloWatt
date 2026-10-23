@@ -38,7 +38,7 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.r
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ```
 
-### B. Aplicación en `app/build.gradle.kts`
+### B. Aplicación en `../../../app/build.gradle.kts`
 - Aplicar el plugin `kotlin-kapt` (o KSP según configuración del proyecto).
 - Registrar las dependencias:
   ```kotlin

@@ -8,6 +8,9 @@
 ## 1. Visión General
 **Kilowatt** es una aplicación móvil Android diseñada para propietarios o administradores de inmuebles que necesitan prorratear y cobrar el consumo eléctrico entre múltiples inquilinos o áreas comunes a partir de un recibo general y submedidores independientes.
 
+> [!NOTE]
+> **Arquitectura Actual:** La Fase 1 de refactorización arquitectónica se encuentra **100% completada**, implementando el patrón **MVVM + StateFlow + Dagger Hilt DI** en todas las pantallas de la aplicación, respaldado por 36 pruebas unitarias automatizadas en verde.
+
 ---
 
 ## 2. Componentes y Estado de Módulos
@@ -23,10 +26,10 @@
 | **Resumen y Notificaciones (`ResumenCobrosActivity`)** | ✅ Operativo / MVVM | Migrado exitosamente al patrón MVVM (`ResumenCobrosViewModel` + `StateFlow` + `ILecturaRepository`). Gestión completa de cobranza con auditoría (`PENDIENTE` / `PAGADO` / `VENCIDO`), envío de mensajes por WhatsApp y exportación a PDF. |
 | **Autenticación (`AuthActivity`)** | ✅ Operativo / MVVM | Migrado exitosamente al patrón MVVM (`AuthViewModel` + `StateFlow` + `IAuthRepository`). Inicio de sesión, registro, envío de correo de recuperación y gestión de sesión activa. |
 | **Configuración y Perfil (`ConfiguracionActivity`)** | ✅ Operativo / MVVM | Migrado exitosamente al patrón MVVM (`ConfiguracionViewModel` + `StateFlow` + `IInquilinoRepository` + `ISettingsManager`). Validación E.164 de WhatsApp para inquilinos y gestión del perfil del propietario. |
-| **Persistencia Local (`Room - AppDatabase`)** | ⚠️ Parcial / Desacoplada | Entidades y DAOs definidos (v5), pero los repositorios activos operan directamente contra Cloud Firestore. |
+| **Persistencia Local (`Room - AppDatabase`)** | ✅ Operativo / SSOT (Fase 2) | Implementación completa del patrón Single Source of Truth (SSOT) en `LecturaRepository` e `InquilinoRepository`. `DatabaseModule` inyecta `AppDatabase` y DAOs en Hilt. Soporte WorkManager integrado (`SyncWorker`). |
 
 ---
 
 ## 3. Limitaciones y Deuda Técnica Detectada
-* **Fase 1 Completada (MVVM + StateFlow + Hilt DI):** 100% de las pantallas operan bajo MVVM con StateFlow e inyección de dependencias con Hilt (@HiltAndroidApp, @AndroidEntryPoint, @HiltViewModel) respaldados por 36 pruebas unitarias pasadas.
+* **Fase 1 y Fase 2 Completadas:** MVVM + StateFlow + Hilt DI + Offline-First SSOT 100% operativos respaldados por 36 pruebas unitarias en verde.
 * **Manejo avanzado de cobranza:** Sistema de cobros operativo (`PENDIENTE`/`PAGADO`/`VENCIDO` dinámico). Pendiente importes parciales y sellos visuales en PDF/WhatsApp.

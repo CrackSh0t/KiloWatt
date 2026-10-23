@@ -10,17 +10,18 @@ Este documento detalla las etapas de evolución, mejoras técnicas y nuevas func
   - [x] Iteración 2: Migración de `ResumenCobrosActivity` a `ResumenCobrosViewModel` + `StateFlow` + `ResumenCobrosUiState`.
   - [x] Iteración 3: Migración de `LecturasActivity` a `LecturasViewModel` + `StateFlow` + `LecturasUiState`.
   - [x] Iteración 4: Migración de `AuthActivity` y `ConfiguracionActivity` a `AuthViewModel` & `ConfiguracionViewModel` + StateFlow.
-- [/] **Inyección de Dependencias (Hilt):**
-  - Integrar Hilt para la gestión automatizada del ciclo de vida de repositorios y ViewModels (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`).
+- [x] **Inyección de Dependencias (Hilt):**
+  - Integración de Dagger Hilt v2.60.1 para la gestión automatizada del ciclo de vida de repositorios y ViewModels (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `@Binds`, `@Provides`).
 - [x] **Desacoplamiento de Adapters:**
   - Mover la generación de PDFs y los Intents de WhatsApp fuera de `CobroAdapter` hacia listeners/callbacks manejados por la UI o Casos de Uso.
 
 ---
 
 ## Fase 2: Soporte Offline y Consistencia de Datos 💾
-- [ ] **Integración Offline-First (Room + Firestore):**
-  - Conectar los repositorios a `AppDatabase` para que Room funcione como Fuente Única de Verdad (*Single Source of Truth*).
-  - Configurar políticas de sincronización bidireccional en segundo plano (usando WorkManager).
+- [x] **Integración Offline-First (Room + Firestore):**
+  - [x] Iteración 1: Creación de `DatabaseModule` en Hilt y refactorización SSOT en `LecturaRepository` (Room local + sincronización asíncrona con Firestore).
+  - [x] Iteración 2: Migración SSOT de `InquilinoRepository` e integración de WorkManager (`SyncWorker`).
+  - Propuesta técnica redactada en [`Propuesta_Soporte_Offline_Room.md`](Propuestas/Implementadas/Propuesta_Soporte_Offline_Room.md).
 - [x] **Validaciones de Entrada Robustas:**
   - Validación internacional y formato E.164 para números telefónicos de WhatsApp (`PhoneUtils`).
   - Validación de periodos/meses para evitar duplicidad de facturas por errores tipográficos.

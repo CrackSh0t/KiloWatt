@@ -7,7 +7,7 @@ Este documento registra la implementación y el resultado de la auditoría técn
 ## 1. Resumen de Implementación
 
 1. **Configuración de Gradle:**
-   - Adición de Hilt (v2.60.1) en `gradle/libs.versions.toml`, `build.gradle.kts` y `app/build.gradle.kts` utilizando `kapt`.
+   - Adición de Hilt (v2.60.1) en `../../../gradle/libs.versions.toml`, `../../../build.gradle.kts` y `../../../app/build.gradle.kts` utilizando `kapt`.
 2. **Clase Application:**
    - Creación de `KilowattApp.kt` anotada con `@HiltAndroidApp` y declarada en `AndroidManifest.xml`.
 3. **Módulos de Inyección (`di`):**
@@ -20,7 +20,7 @@ Este documento registra la implementación y el resultado de la auditoría técn
 
 ---
 
-## 2. Resultado de la Auditoría Técnica (`docs/IA/SKILL_AUDITOR.md`)
+## 2. Resultado de la Auditoría Técnica (`../../IA/SKILL_AUDITOR.md`)
 
 - **Veredicto:** **APROBADO ✅**
 - **Hallazgos:** Cero defectos críticos, altos o medios.

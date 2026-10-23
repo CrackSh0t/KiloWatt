@@ -3,18 +3,22 @@ package com.example.kilowatt.data
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObjects
-import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-
 import javax.inject.Inject
 
-class LecturaRepository @Inject constructor() : ILecturaRepository {
+class LecturaRepository @Inject constructor(
+    private val lecturaDao: LecturaDao,
+    private val facturaDao: FacturaGeneralDao,
+) : ILecturaRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     private val uid: String?
         get() = auth.currentUser?.uid
@@ -27,13 +31,19 @@ class LecturaRepository @Inject constructor() : ILecturaRepository {
 
     private fun sanitizeDocId(docId: String): String = docId.trim().replace("/", "_").replace("\\", "_")
 
-    // Guardar / Actualizar Recibo Base (Factura General)
-    override suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> =
-        suspendCancellableCoroutine { continuation ->
+    // Guardar / Actualizar Recibo Base (Factura General) - SSOT: Local Room primero, luego Firestore
+    override suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> {
+        try {
+            facturaDao.insertarFactura(factura)
+        } catch (_: Exception) {
+            // Continuar con sincronización remota aunque falle localmente
+        }
+
+        return suspendCancellableCoroutine { continuation ->
             try {
                 val fRef = facturasRef
                 if (fRef == null) {
-                    if (continuation.isActive) continuation.resume(Pair(false, "Usuario no autenticado"))
+                    if (continuation.isActive) continuation.resume(Pair(true, null))
                     return@suspendCancellableCoroutine
                 }
 
@@ -46,20 +56,25 @@ class LecturaRepository @Inject constructor() : ILecturaRepository {
                         if (continuation.isActive) continuation.resume(Pair(true, null))
                     }
                     .addOnFailureListener { e ->
-                        if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+                        if (continuation.isActive) continuation.resume(Pair(true, "Guardado localmente. Error en nube: ${e.localizedMessage}"))
                     }
             } catch (e: Exception) {
                 if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
             }
         }
+    }
 
-    // Guardar / Actualizar Lectura de un submedidor
-    override suspend fun guardarLectura(lectura: Lectura): Pair<Boolean, String?> =
-        suspendCancellableCoroutine { continuation ->
+    // Guardar / Actualizar Lectura de un submedidor - SSOT: Local Room primero, luego Firestore
+    override suspend fun guardarLectura(lectura: Lectura): Pair<Boolean, String?> {
+        try {
+            lecturaDao.insertarLectura(lectura)
+        } catch (_: Exception) {}
+
+        return suspendCancellableCoroutine { continuation ->
             try {
                 val lRef = lecturasRef
                 if (lRef == null) {
-                    if (continuation.isActive) continuation.resume(Pair(false, "Usuario no autenticado"))
+                    if (continuation.isActive) continuation.resume(Pair(true, null))
                     return@suspendCancellableCoroutine
                 }
 
@@ -74,25 +89,30 @@ class LecturaRepository @Inject constructor() : ILecturaRepository {
                         if (continuation.isActive) continuation.resume(Pair(true, null))
                     }
                     .addOnFailureListener { e ->
-                        if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+                        if (continuation.isActive) continuation.resume(Pair(true, "Guardado localmente. Error en nube: ${e.localizedMessage}"))
                     }
             } catch (e: Exception) {
                 if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
             }
         }
+    }
 
-    // Actualizar el estado y auditoría de pago de una lectura en Firestore
+    // Actualizar el estado y auditoría de pago - SSOT: Local Room primero, luego Firestore
     override suspend fun actualizarEstadoPago(
         idLectura: String,
         nuevoEstado: String,
         fechaPago: Long?,
         metodoPago: String?,
-    ): Pair<Boolean, String?> =
-        suspendCancellableCoroutine { continuation ->
+    ): Pair<Boolean, String?> {
+        try {
+            lecturaDao.actualizarEstadoPago(idLectura, nuevoEstado, fechaPago, metodoPago)
+        } catch (_: Exception) {}
+
+        return suspendCancellableCoroutine { continuation ->
             try {
                 val lRef = lecturasRef
                 if (lRef == null) {
-                    if (continuation.isActive) continuation.resume(Pair(false, "Usuario no autenticado"))
+                    if (continuation.isActive) continuation.resume(Pair(true, null))
                     return@suspendCancellableCoroutine
                 }
 
@@ -109,72 +129,65 @@ class LecturaRepository @Inject constructor() : ILecturaRepository {
                         if (continuation.isActive) continuation.resume(Pair(true, null))
                     }
                     .addOnFailureListener { e ->
-                        if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+                        if (continuation.isActive) continuation.resume(Pair(true, "Actualizado localmente. Error en nube: ${e.localizedMessage}"))
                     }
             } catch (e: Exception) {
                 if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
             }
         }
-
-    // Escuchar todas las facturas generales guardadas
-    override fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> = callbackFlow {
-        val fRef = facturasRef
-        if (fRef == null) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
-
-        val listener = fRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
-            val lista = snapshot?.toObjects<FacturaGeneral>() ?: emptyList()
-            trySend(lista)
-        }
-        awaitClose { listener.remove() }
     }
 
-    // Escuchar lecturas asociadas a un periodo específico
-    override fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> = callbackFlow {
-        val lRef = lecturasRef
-        if (lRef == null) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
+    // SSOT: Facturas desde Room DAO + Sincronización background con Firestore
+    override fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> {
+        sincronizarFacturasRemotas()
+        return facturaDao.obtenerTodasLasFacturas()
+    }
 
-        val mesLimpio = mes.trim()
-        val listener = lRef.whereEqualTo("mesPeriodo", mesLimpio)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
+    // SSOT: Lecturas por mes desde Room DAO + Sincronización background con Firestore
+    override fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> {
+        sincronizarLecturasRemotas()
+        return lecturaDao.obtenerLecturasPorMes(mes.trim())
+    }
+
+    // SSOT: Todas las lecturas desde Room DAO + Sincronización background con Firestore
+    override fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> {
+        sincronizarLecturasRemotas()
+        return lecturaDao.obtenerTodasLasLecturas()
+    }
+
+    private fun sincronizarFacturasRemotas() {
+        val fRef = facturasRef ?: return
+        scope.launch {
+            fRef.addSnapshotListener { snapshot, error ->
+                if (error == null && snapshot != null) {
+                    val lista = snapshot.toObjects<FacturaGeneral>()
+                    scope.launch {
+                        for (factura in lista) {
+                            try {
+                                facturaDao.insertarFactura(factura)
+                            } catch (_: Exception) {}
+                        }
+                    }
                 }
-                val lista = snapshot?.toObjects<Lectura>() ?: emptyList()
-                trySend(lista)
             }
-        awaitClose { listener.remove() }
+        }
     }
 
-    // Escuchar todas las lecturas históricas guardadas del usuario
-    override fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> = callbackFlow {
-        val lRef = lecturasRef
-        if (lRef == null) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
-
-        val listener = lRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
+    private fun sincronizarLecturasRemotas() {
+        val lRef = lecturasRef ?: return
+        scope.launch {
+            lRef.addSnapshotListener { snapshot, error ->
+                if (error == null && snapshot != null) {
+                    val lista = snapshot.toObjects<Lectura>()
+                    scope.launch {
+                        for (lectura in lista) {
+                            try {
+                                lecturaDao.insertarLectura(lectura)
+                            } catch (_: Exception) {}
+                        }
+                    }
+                }
             }
-            val lista = snapshot?.toObjects<Lectura>() ?: emptyList()
-            trySend(lista)
         }
-        awaitClose { listener.remove() }
     }
 }

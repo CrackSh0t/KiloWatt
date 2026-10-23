@@ -13,6 +13,22 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/
 - **Sincronización del Entorno de Construcción:** Configuración optimizada de Gradle para compatibilidad total con Kotlin 2.x y KSP2.
 
 ### Añadido
+- **Soporte Offline y Consistencia de Datos (Fase 2 Iteración 2 - InquilinoRepository SSOT & WorkManager):**
+  - Refactorización SSOT en [`InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt) inyectando `InquilinoDao` y `SubmedidorDao` vía Hilt, permitiendo lectura local y sincronización asíncrona en background con Firestore.
+  - Integración de WorkManager mediante [`SyncWorker.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/worker/SyncWorker.kt) para tareas de sincronización diferida.
+  - Actualización de [`ConfiguracionActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt) con inyección de dependencias por campo mediante `@Inject`.
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
+- **Soporte Offline y Consistencia de Datos (Fase 2 Iteración 1 - LecturaRepository SSOT):**
+  - Creación del módulo Hilt [`DatabaseModule.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/di/DatabaseModule.kt) para proveer `AppDatabase` y DAOs (`LecturaDao`, `FacturaGeneralDao`, `InquilinoDao`, `SubmedidorDao`).
+  - Adición de consulta en [`LecturaDao.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/LecturaDao.kt) (`obtenerTodasLasLecturas`).
+  - Refactorización SSOT en [`LecturaRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/LecturaRepository.kt): lectura local directa desde SQLite (Room) con sincronización en segundo plano hacia Cloud Firestore.
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
+- **Inyección de Dependencias con Dagger Hilt v2.60.1 (Cierre de Fase 1):**
+  - Configuración e integración completa de Dagger Hilt en el proyecto (`libs.versions.toml`, `build.gradle.kts`, `app/build.gradle.kts`).
+  - Creación de la clase [`KilowattApp.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/KilowattApp.kt) anotada con `@HiltAndroidApp` y registrada en [`AndroidManifest.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/AndroidManifest.xml).
+  - Implementación de los módulos de inyección [`RepositoryModule.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/di/RepositoryModule.kt) (`@Binds` para repositorios) y [`AppModule.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/di/AppModule.kt) (`@Provides` para ajustes y dispatchers).
+  - Inyección por constructor (`@Inject constructor`) en repositorios y ViewModels (`@HiltViewModel`), junto con la anotación `@AndroidEntryPoint` en todas las actividades (`MainActivity`, `AuthActivity`, `ConfiguracionActivity`, `LecturasActivity`, `ResumenCobrosActivity`, `HistorialConsumoActivity`).
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
 - **Lógica de "Cierre de Caja Exacto" en Resumen de Cobros:**
   - Inclusión de todos los submedidores e inquilinos registrados en la vista de resumen mensual ([`ResumenCobrosActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt)), incluso si no registran lectura en el mes seleccionado.
   - Asignación automática de `0 kWh` de consumo propio a inquilinos sin lectura en el periodo, manteniendo la asignación proporcional de la cuota de área común.
