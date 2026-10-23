@@ -18,8 +18,9 @@ Antes de modificar código, leer obligatoriamente:
 1. docs/CONTEXTO_IA.md
 2. docs/ESTADO_DEL_PROYECTO.md
 3. docs/ARQUITECTURA.md
-4. Propuesta técnica o instruccion aprobada por el Tech Lead/Arquitecto.
-5. Leer la documentacion necesaria.
+4. docs/IA/MEMORIA_PROYECTO_KILOWATT.md
+5. Propuesta técnica o instruccion aprobada por el Tech Lead/Arquitecto.
+6. Leer la documentacion necesaria.
 
 ---
 # FASE 1 - Análisis y Diseño de la Solución
