@@ -29,6 +29,9 @@ Este documento detalla las etapas de evolución, mejoras técnicas y nuevas func
 ---
 
 ## Fase 3: Gestión de Cobros y Pagos 💳
+- [x] **Personalización de Comprobantes PDF y Sellos Visuales:**
+  - [x] Iteración 1: Personalización de encabezados, datos del propietario y sellos gráficos de pago en comprobantes PDF (`PdfGenerator.kt`).
+  - [x] Iteración 2: Integración de sellos gráficos de estado de pago en la UI (`CobroAdapter.kt` / `item_cobro.xml`).
 - [x] **Estado de Pagos:**
   - [x] Cobranza persistente (`PENDIENTE` / `PAGADO`) en Firestore y Room.
   - [x] Fase 2A: Registro auditable de fecha de pago y medio de pago (Yape, Plin, Efectivo, Transferencia).

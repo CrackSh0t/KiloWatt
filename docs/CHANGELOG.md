@@ -13,6 +13,15 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/
 - **Sincronización del Entorno de Construcción:** Configuración optimizada de Gradle para compatibilidad total con Kotlin 2.x y KSP2.
 
 ### Añadido
+- **Sellos Visuales de Estado de Pago en UI (Fase 3 Iteración 2 y Cierre Fase 3 - CobroAdapter):**
+  - Adición de tarjeta distintiva redondeada (`cardEstadoPago`) en [`item_cobro.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_cobro.xml).
+  - Renderizado dinámico con fondos de alto contraste y etiquetas emojis (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`, `Sin Lectura ⚠️`) en [`CobroAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/CobroAdapter.kt).
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
+- **Personalización de Comprobantes PDF y Sellos Visuales (Fase 3 Iteración 1 - PdfGenerator):**
+  - Inyección de `ISettingsManager` en [`PdfGenerator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt).
+  - Personalización de cabeceras en comprobantes A6 y reportes A5 con nombre del propietario, número Yape/Plin y día límite de pago.
+  - Renderizado dinámico de distintivos gráficos de estado de pago (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`) en los recibos impresos.
+  - Verificación mediante ejecución exitosa de las 36 pruebas unitarias al 100%.
 - **Soporte Offline y Consistencia de Datos (Fase 2 Iteración 2 - InquilinoRepository SSOT & WorkManager):**
   - Refactorización SSOT en [`InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt) inyectando `InquilinoDao` y `SubmedidorDao` vía Hilt, permitiendo lectura local y sincronización asíncrona en background con Firestore.
   - Integración de WorkManager mediante [`SyncWorker.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/worker/SyncWorker.kt) para tareas de sincronización diferida.

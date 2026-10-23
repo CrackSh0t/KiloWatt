@@ -31,5 +31,4 @@
 ---
 
 ## 3. Limitaciones y Deuda Técnica Detectada
-* **Fase 1 y Fase 2 Completadas:** MVVM + StateFlow + Hilt DI + Offline-First SSOT 100% operativos respaldados por 36 pruebas unitarias en verde.
-* **Manejo avanzado de cobranza:** Sistema de cobros operativo (`PENDIENTE`/`PAGADO`/`VENCIDO` dinámico). Pendiente importes parciales y sellos visuales en PDF/WhatsApp.
+* **Fases 1, 2 y 3 Completadas al 100%:** MVVM, StateFlow, Hilt DI, Offline-First SSOT, personalización de comprobantes PDF y sellos de estado de pago en UI (`CobroAdapter`) y PDF completamente operativos respaldados por 36 pruebas unitarias en verde.

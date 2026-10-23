@@ -1,7 +1,6 @@
 package com.example.kilowatt.util
 
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
@@ -17,89 +16,136 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class PdfGenerator(private val context: Context) {
-
-    private val settingsManager = SettingsManager(context)
+class PdfGenerator(
+    private val context: Context,
+    private val settingsManager: ISettingsManager = SettingsManager(context),
+) {
 
     suspend fun generarComprobanteIndividual(detalle: DetalleCobro): File? = withContext(Dispatchers.IO) {
-        // Formato: 148 x 105 mm (aprox) -> A6 horizontal o similar
-        // En puntos (1/72 inch): 148mm = 419 pts, 105mm = 297 pts
+        // Formato: A6 Horizontal (420 x 300 pts)
         val document = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(420, 300, 1).create()
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
-        val paint = Paint()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-        // Dibujar Fondo Blanco
+        // Fondo Blanco
         canvas.drawColor(Color.WHITE)
 
-        // Encabezado
-        paint.color = Color.parseColor("#673AB7")
-        paint.textSize = 18f
-        paint.isFakeBoldText = true
-        canvas.drawText("⚡ KiloWatt - Comprobante", 20f, 35f, paint)
+        // 1. Cabecera Estilizada del Propietario / Inmueble
+        paint.color = Color.parseColor("#673AB7") // Púrpura KiloWatt
+        paint.style = Paint.Style.FILL
+        val headerCard = RectF(15f, 15f, 405f, 65f)
+        canvas.drawRoundRect(headerCard, 8f, 8f, paint)
 
-        paint.color = Color.DKGRAY
-        paint.textSize = 10f
+        val nombrePropietario = settingsManager.nombrePropietario.ifBlank { "Administración KiloWatt" }
+        paint.color = Color.WHITE
+        paint.textSize = 14f
+        paint.isFakeBoldText = true
+        canvas.drawText("⚡ $nombrePropietario", 25f, 37f, paint)
+
+        paint.textSize = 9f
         paint.isFakeBoldText = false
         val fechaEmision = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
-        canvas.drawText("Periodo: ${detalle.mesPeriodo} | Emisión: $fechaEmision", 20f, 55f, paint)
+        canvas.drawText("Periodo: ${detalle.mesPeriodo} | Emisión: $fechaEmision", 25f, 52f, paint)
 
-        // Línea divisoria
-        paint.strokeWidth = 1f
-        canvas.drawLine(20f, 65f, 400f, 65f, paint)
-
-        // Datos del Inquilino
-        paint.textSize = 12f
-        paint.color = Color.BLACK
-        paint.isFakeBoldText = true
-        canvas.drawText("Inquilino: ${detalle.nombreInquilino}", 20f, 85f, paint)
-        paint.isFakeBoldText = false
-        canvas.drawText("Espacio: ${detalle.nombreEspacio}", 20f, 100f, paint)
-
-        // Desglose de Consumo (Tabla simple)
-        paint.textSize = 10f
-        var yPos = 125f
-        canvas.drawText("Lectura Anterior:", 20f, yPos, paint)
-        canvas.drawText("${"%.1f".format(detalle.lecturaAnterior)} kWh", 300f, yPos, paint)
-        yPos += 15f
-        canvas.drawText("Lectura Actual:", 20f, yPos, paint)
-        canvas.drawText("${"%.1f".format(detalle.lecturaActual)} kWh", 300f, yPos, paint)
-        yPos += 15f
-        paint.isFakeBoldText = true
-        canvas.drawText("Consumo del Mes:", 20f, yPos, paint)
-        canvas.drawText("${"%.1f".format(detalle.consumoKwh)} kWh", 300f, yPos, paint)
-        paint.isFakeBoldText = false
-        yPos += 20f
-
-        // Costos
-        canvas.drawText("Costo x kWh (S/ ${"%.2f".format(detalle.precioKwh)}):", 20f, yPos, paint)
-        canvas.drawText("S/ ${"%.2f".format(detalle.consumoKwh * detalle.precioKwh)}", 300f, yPos, paint)
-        yPos += 15f
-        if (detalle.montoAreaComunSoles > 0) {
-            canvas.drawText("Cuota Área Común:", 20f, yPos, paint)
-            canvas.drawText("S/ ${"%.2f".format(detalle.montoAreaComunSoles)}", 300f, yPos, paint)
-            yPos += 15f
+        // Sello Visual de Estado de Pago en la Cabecera (PAGADO / VENCIDO / PENDIENTE)
+        val estadoUpper = detalle.estadoPago.uppercase(Locale.getDefault())
+        val (colorSello, textoSello) = when (estadoUpper) {
+            "PAGADO" -> Pair(Color.parseColor("#2E7D32"), "PAGADO ✅")
+            "VENCIDO" -> Pair(Color.parseColor("#C62828"), "VENCIDO 🔴")
+            else -> Pair(Color.parseColor("#EF6C00"), "PENDIENTE 🟡")
         }
 
-        // Total
-        paint.strokeWidth = 2f
-        canvas.drawLine(20f, yPos - 5, 400f, yPos - 5, paint)
-        paint.textSize = 16f
+        val badgeRect = RectF(295f, 25f, 395f, 55f)
+        val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(badgeRect, 6f, 6f, badgePaint)
+
+        paint.color = colorSello
+        paint.textSize = 9f
+        paint.isFakeBoldText = true
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText(textoSello, badgeRect.centerX(), badgeRect.centerY() + 3f, paint)
+        paint.textAlign = Paint.Align.LEFT
+
+        // 2. Datos del Inquilino y Espacio (Tarjeta Gris Clara)
+        val tenantCard = RectF(15f, 72f, 405f, 115f)
+        paint.color = Color.parseColor("#F5F5F5")
+        canvas.drawRoundRect(tenantCard, 6f, 6f, paint)
+
+        paint.color = Color.parseColor("#212121")
+        paint.textSize = 10f
+        paint.isFakeBoldText = true
+        canvas.drawText("Inquilino: ${detalle.nombreInquilino}", 25f, 89f, paint)
+        paint.isFakeBoldText = false
+        paint.color = Color.parseColor("#616161")
+        canvas.drawText("Espacio / Medidor: ${detalle.nombreEspacio}", 25f, 105f, paint)
+
+        // 3. Desglose de Consumo
+        paint.color = Color.parseColor("#424242")
+        paint.textSize = 9.5f
+        var yPos = 132f
+
+        canvas.drawText("Lectura Anterior:", 25f, yPos, paint)
+        canvas.drawText("${"%.1f".format(detalle.lecturaAnterior)} kWh", 310f, yPos, paint)
+        yPos += 14f
+
+        canvas.drawText("Lectura Actual:", 25f, yPos, paint)
+        canvas.drawText("${"%.1f".format(detalle.lecturaActual)} kWh", 310f, yPos, paint)
+        yPos += 14f
+
+        paint.isFakeBoldText = true
+        paint.color = Color.parseColor("#212121")
+        canvas.drawText("Consumo del Mes:", 25f, yPos, paint)
+        canvas.drawText("${"%.1f".format(detalle.consumoKwh)} kWh", 310f, yPos, paint)
+        paint.isFakeBoldText = false
+        yPos += 16f
+
+        // Costos
+        paint.color = Color.parseColor("#616161")
+        canvas.drawText("Costo x kWh (S/ ${"%.2f".format(detalle.precioKwh)}):", 25f, yPos, paint)
+        canvas.drawText("S/ ${"%.2f".format(detalle.consumoKwh * detalle.precioKwh)}", 310f, yPos, paint)
+        yPos += 14f
+
+        if (detalle.montoAreaComunSoles > 0) {
+            canvas.drawText("Cuota Área Común:", 25f, yPos, paint)
+            canvas.drawText("S/ ${"%.2f".format(detalle.montoAreaComunSoles)}", 310f, yPos, paint)
+            yPos += 14f
+        }
+
+        // 4. Línea Divisoria y Total a Pagar
+        paint.strokeWidth = 1.2f
+        paint.color = Color.parseColor("#BDBDBD")
+        canvas.drawLine(15f, yPos, 405f, yPos, paint)
+
+        yPos += 18f
+        paint.textSize = 14f
         paint.color = Color.parseColor("#2E7D32")
         paint.isFakeBoldText = true
-        canvas.drawText("TOTAL A PAGAR:", 20f, yPos + 15, paint)
-        canvas.drawText("S/ ${"%.2f".format(detalle.montoPagarSoles)}", 300f, yPos + 15, paint)
+        canvas.drawText("TOTAL A PAGAR:", 25f, yPos, paint)
+        canvas.drawText("S/ ${"%.2f".format(detalle.montoPagarSoles)}", 310f, yPos, paint)
 
-        // Información de Pago
-        paint.textSize = 9f
-        paint.color = Color.DKGRAY
+        // 5. Pie de Página con Información de Pago Configurable
+        val footerCard = RectF(15f, yPos + 10f, 405f, 288f)
+        paint.color = Color.parseColor("#FAFAFA")
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(footerCard, 6f, 6f, paint)
+
+        paint.textSize = 8.5f
+        paint.color = Color.parseColor("#424242")
         paint.isFakeBoldText = false
-        yPos += 45f
-        canvas.drawText("Pagar vía Yape/Plin al: ${settingsManager.numeroPago}", 20f, yPos, paint)
-        canvas.drawText("Titular: ${settingsManager.nombrePropietario}", 20f, yPos + 12, paint)
-        paint.color = Color.RED
-        canvas.drawText("Límite de pago: Día ${settingsManager.diaLimitePago} de cada mes.", 20f, yPos + 24, paint)
+        var yFooter = yPos + 22f
+
+        val numPago = settingsManager.numeroPago.ifBlank { "-" }
+        canvas.drawText("💳 Medio de Pago (Yape / Plin / Transf): $numPago", 22f, yFooter, paint)
+        yFooter += 11f
+
+        paint.color = Color.parseColor("#C62828")
+        paint.isFakeBoldText = true
+        canvas.drawText("⏰ Límite de pago: Día ${settingsManager.diaLimitePago} de cada mes.", 22f, yFooter, paint)
 
         document.finishPage(page)
 
@@ -121,134 +167,130 @@ class PdfGenerator(private val context: Context) {
 
     suspend fun generarReporteGeneral(mes: String, factura: FacturaGeneral, detalles: List<DetalleCobro>): File? = withContext(Dispatchers.IO) {
         val document = PdfDocument()
-        // A5 Vertical: 148mm x 210mm -> 420 x 595 pts
+        // A5 Vertical: 420 x 600 pts
         val pageInfo = PdfDocument.PageInfo.Builder(420, 600, 1).create()
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
-        val paint = Paint()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
         canvas.drawColor(Color.WHITE)
 
-        // Encabezado Reporte General
-        paint.color = Color.BLACK
-        paint.textSize = 20f
+        // 1. Cabecera Personalizada
+        paint.color = Color.parseColor("#673AB7")
+        val headerCard = RectF(15f, 15f, 405f, 65f)
+        canvas.drawRoundRect(headerCard, 8f, 8f, paint)
+
+        val nombrePropietario = settingsManager.nombrePropietario.ifBlank { "Administración KiloWatt" }
+        paint.color = Color.WHITE
+        paint.textSize = 15f
         paint.isFakeBoldText = true
-        canvas.drawText("REPORTE GENERAL DE COBROS", 20f, 40f, paint)
-        paint.textSize = 12f
+        canvas.drawText("⚡ REPORTE GENERAL DE COBROS", 25f, 38f, paint)
+
+        paint.textSize = 9.5f
         paint.isFakeBoldText = false
-        canvas.drawText("Periodo: $mes", 20f, 60f, paint)
+        canvas.drawText("Propietario: $nombrePropietario | Periodo: $mes", 25f, 53f, paint)
 
-        // Resumen Recibo
-        paint.color = Color.LTGRAY
-        canvas.drawRect(20f, 75f, 400f, 130f, paint)
-        paint.color = Color.BLACK
-        paint.textSize = 11f
-        canvas.drawText("Recibo Empresa Eléctrica:", 30f, 95f, paint)
-        canvas.drawText("S/ ${"%.2f".format(factura.montoTotalSoles)}", 300f, 95f, paint)
-        canvas.drawText("Total kWh Submedidores:", 30f, 115f, paint)
-        val totalKwh = detalles.sumOf { it.consumoKwh }
-        canvas.drawText("${"%.1f".format(totalKwh)} kWh", 300f, 115f, paint)
+        // 2. Resumen Recibo Matriz
+        paint.color = Color.parseColor("#F5F5F5")
+        val resumenCard = RectF(15f, 72f, 405f, 125f)
+        canvas.drawRoundRect(resumenCard, 6f, 6f, paint)
 
-        // Gráfico de Torta (Simple)
-        paint.textSize = 14f
+        paint.color = Color.parseColor("#212121")
+        paint.textSize = 10f
         paint.isFakeBoldText = true
-        canvas.drawText("Distribución de Consumo", 20f, 160f, paint)
-        
+        canvas.drawText("Resumen Factura General:", 25f, 89f, paint)
+        paint.isFakeBoldText = false
+        canvas.drawText("Monto Recibo Matriz: S/ ${"%.2f".format(factura.montoTotalSoles)}", 25f, 104f, paint)
+        val totalKwh = detalles.sumOf { it.consumoKwh }
+        canvas.drawText("Consumo Total Submedidores: ${"%.1f".format(totalKwh)} kWh", 25f, 118f, paint)
+
+        // 3. Distribución Visual
+        paint.textSize = 11f
+        paint.isFakeBoldText = true
+        paint.color = Color.parseColor("#212121")
+        canvas.drawText("Distribución de Consumo", 15f, 145f, paint)
+
         val colors = intArrayOf(
-            Color.parseColor("#FF5252"), // Rojo
-            Color.parseColor("#4CAF50"), // Verde
-            Color.parseColor("#2196F3"), // Azul
-            Color.parseColor("#FFC107"), // Ámbar
-            Color.parseColor("#9C27B0"), // Púrpura
-            Color.parseColor("#00BCD4"), // Cian
-            Color.parseColor("#FF9800"), // Naranja
-            Color.parseColor("#795548"), // Marrón
-            Color.parseColor("#607D8B"), // Gris Azulado
-            Color.parseColor("#E91E63")  // Rosa
+            Color.parseColor("#FF5252"), Color.parseColor("#4CAF50"),
+            Color.parseColor("#2196F3"), Color.parseColor("#FFC107"),
+            Color.parseColor("#9C27B0"), Color.parseColor("#00BCD4"),
+            Color.parseColor("#FF9800"), Color.parseColor("#795548"),
+            Color.parseColor("#607D8B"), Color.parseColor("#E91E63"),
         )
         var startAngle = 0f
-        // Gráfico más pequeño y más a la izquierda para dar máximo espacio a la leyenda
-        val rectF = RectF(30f, 180f, 190f, 340f)
-        
+        val rectF = RectF(25f, 160f, 175f, 310f)
+
         if (totalKwh > 0) {
-            // Filtrar solo los que tienen consumo para no saturar la leyenda
             val detallesConConsumo = detalles.filter { it.consumoKwh > 0 }
-            val rowHeight = if (detallesConConsumo.size > 6) 20f else 23f
-            
+            val rowHeight = if (detallesConConsumo.size > 6) 18f else 21f
+
             detallesConConsumo.forEachIndexed { index, det ->
                 val sweep = (det.consumoKwh / totalKwh * 360).toFloat()
-                
+
                 paint.color = colors[index % colors.size]
                 paint.style = Paint.Style.FILL
                 canvas.drawArc(rectF, startAngle, sweep, true, paint)
-                
-                // Leyenda a la derecha del gráfico
-                val xLegend = 210f
-                val yLegend = 188f + (index * rowHeight)
-                
+
+                val xLegend = 195f
+                val yLegend = 168f + (index * rowHeight)
+
                 paint.color = colors[index % colors.size]
-                canvas.drawRect(xLegend, yLegend - 7f, xLegend + 8f, yLegend + 1f, paint)
-                
-                // Línea 1: Nombre del Inquilino (o Espacio)
-                paint.color = Color.BLACK
+                canvas.drawRect(xLegend, yLegend - 6f, xLegend + 8f, yLegend + 2f, paint)
+
+                paint.color = Color.parseColor("#212121")
                 paint.textSize = if (detallesConConsumo.size > 6) 7.5f else 8.5f
                 paint.isFakeBoldText = true
-                
-                val tieneInquilinoDiferente = det.nombreInquilino.isNotBlank() && 
-                        !det.nombreInquilino.trim().equals(det.nombreEspacio.trim(), ignoreCase = true)
-                
+
+                val tieneInquilinoDiferente = det.nombreInquilino.isNotBlank() &&
+                    !det.nombreInquilino.trim().equals(det.nombreEspacio.trim(), ignoreCase = true)
+
                 val nombreInquilinoTxt = if (tieneInquilinoDiferente) det.nombreInquilino else det.nombreEspacio
                 val nombreInquilinoCorto = if (nombreInquilinoTxt.length > 20) nombreInquilinoTxt.take(18) + ".." else nombreInquilinoTxt
                 canvas.drawText(nombreInquilinoCorto, xLegend + 12f, yLegend, paint)
-                
-                // Consumo a la derecha con 2 decimales
+
                 paint.isFakeBoldText = false
                 val consumoTexto = "${"%.2f".format(det.consumoKwh)} kWh"
                 paint.textAlign = Paint.Align.RIGHT
-                canvas.drawText(consumoTexto, 400f, yLegend, paint)
+                canvas.drawText(consumoTexto, 405f, yLegend, paint)
                 paint.textAlign = Paint.Align.LEFT
-                
-                // Línea 2: Área/Espacio con letra más pequeña (debajo del nombre)
-                if (tieneInquilinoDiferente) {
-                    paint.textSize = if (detallesConConsumo.size > 6) 6.5f else 7.5f
-                    paint.color = Color.DKGRAY
-                    val espacioCorto = if (det.nombreEspacio.length > 25) det.nombreEspacio.take(23) + ".." else det.nombreEspacio
-                    canvas.drawText(espacioCorto, xLegend + 12f, yLegend + 9f, paint)
-                }
-                
+
                 startAngle += sweep
             }
         }
 
-        // Tabla Consolidada
+        // 4. Tabla Consolidada
         paint.style = Paint.Style.FILL
-        paint.textSize = 12f
+        paint.textSize = 11f
         paint.isFakeBoldText = true
-        canvas.drawText("Detalle Consolidado", 20f, 380f, paint)
-        
-        paint.textSize = if (detalles.size > 8) 8f else 9f
+        paint.color = Color.parseColor("#212121")
+        canvas.drawText("Detalle Consolidado de Cobros", 15f, 335f, paint)
+
+        paint.textSize = if (detalles.size > 8) 8f else 8.5f
         paint.isFakeBoldText = false
-        var yPos = 405f
+        var yPos = 355f
+
         // Cabecera Tabla
         paint.color = Color.parseColor("#EEEEEE")
-        canvas.drawRect(20f, yPos - 12, 400f, yPos + 3, paint)
+        canvas.drawRect(15f, yPos - 12f, 405f, yPos + 3f, paint)
         paint.color = Color.BLACK
-        canvas.drawText("Inquilino / Espacio", 25f, yPos, paint)
-        canvas.drawText("kWh", 245f, yPos, paint)
-        canvas.drawText("Área C.", 295f, yPos, paint)
-        canvas.drawText("Total", 355f, yPos, paint)
-        yPos += 18f
+        paint.isFakeBoldText = true
+        canvas.drawText("Inquilino / Espacio", 20f, yPos, paint)
+        canvas.drawText("kWh", 240f, yPos, paint)
+        canvas.drawText("Área C.", 290f, yPos, paint)
+        canvas.drawText("Total", 350f, yPos, paint)
+        paint.isFakeBoldText = false
+        yPos += 16f
 
         detalles.forEach { det ->
-            val tieneInquilinoDiferente = det.nombreInquilino.isNotBlank() && 
-                    !det.nombreInquilino.trim().equals(det.nombreEspacio.trim(), ignoreCase = true)
+            val tieneInquilinoDiferente = det.nombreInquilino.isNotBlank() &&
+                !det.nombreInquilino.trim().equals(det.nombreEspacio.trim(), ignoreCase = true)
             val etiqueta = if (tieneInquilinoDiferente) "${det.nombreInquilino} (${det.nombreEspacio})" else det.nombreEspacio
-            val etiquetaTabla = if (etiqueta.length > 36) etiqueta.take(34) + ".." else etiqueta
-            
-            canvas.drawText(etiquetaTabla, 25f, yPos, paint)
-            canvas.drawText("${"%.1f".format(det.consumoKwh)}", 245f, yPos, paint)
-            canvas.drawText("S/ ${"%.2f".format(det.montoAreaComunSoles)}", 295f, yPos, paint)
-            canvas.drawText("S/ ${"%.2f".format(det.montoPagarSoles)}", 355f, yPos, paint)
+            val etiquetaTabla = if (etiqueta.length > 34) etiqueta.take(32) + ".." else etiqueta
+
+            canvas.drawText(etiquetaTabla, 20f, yPos, paint)
+            canvas.drawText("%.1f".format(det.consumoKwh), 240f, yPos, paint)
+            canvas.drawText("S/ %.2f".format(det.montoAreaComunSoles), 290f, yPos, paint)
+            canvas.drawText("S/ %.2f".format(det.montoPagarSoles), 350f, yPos, paint)
             yPos += if (detalles.size > 8) 12f else 15f
         }
 

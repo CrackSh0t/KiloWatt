@@ -13,7 +13,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Header de la tarjeta: Nombre y Estado -->
+        <!-- Header de la tarjeta: Nombre y Sello de Estado -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -22,8 +22,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
-                android:layout_toStartOf="@id/tvEstadoPago"
                 android:layout_marginEnd="8dp"
+                android:layout_toStartOf="@id/cardEstadoPago"
                 android:orientation="vertical">
 
                 <TextView
@@ -52,19 +52,29 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <!-- Chip de Estado de Pago -->
-            <TextView
-                android:id="@+id/tvEstadoPago"
+            <!-- Distintivo Gráfico Estilizado (Sello Visual de Estado de Pago) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardEstadoPago"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:background="@color/amber_warning_bg"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:text="@string/estado_pendiente"
-                android:textColor="@color/amber_warning"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <TextView
+                    android:id="@+id/tvEstadoPago"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:text="@string/estado_pendiente"
+                    android:textColor="@color/amber_warning"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </com.google.android.material.card.MaterialCardView>
         </RelativeLayout>
 
         <View
@@ -161,8 +171,8 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
-                android:layout_toStartOf="@id/containerBotones"
                 android:layout_marginEnd="8dp"
+                android:layout_toStartOf="@id/containerBotones"
                 android:orientation="vertical">
 
                 <TextView

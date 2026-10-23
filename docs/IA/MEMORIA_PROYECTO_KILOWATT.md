@@ -418,6 +418,68 @@ Se completó la Iteración 4 y el cierre de la Fase 1 de la migración arquitect
 
 ---
 
+## Resumen de la Implementación: Personalización de Comprobantes PDF (Fase 3 Iteración 1 - PdfGenerator)
+
+### 1. Objetivo y Contexto
+
+Se completó la Iteración 1 de la Fase 3, refactorizando [`PdfGenerator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt) para incorporar datos de perfil del propietario (`ISettingsManager`) y sellos de estado de pago en los comprobantes PDF.
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Parametrización e Inyección en `PdfGenerator`:**
+  - Integración de `ISettingsManager` por constructor con fallback seguro para testing o instanciación directa.
+* **Diseño e Impronta Visual:**
+  - Cabecera A6/A5 estilizada con nombre del inmueble o propietario.
+  - Sello de estado de pago destacado (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`).
+  - Pie de página con información de contacto para pagos digitales (Yape / Plin / Transferencias) y advertencia de día límite.
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt)
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de la tarea `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **36 pruebas pasadas, 0 falladas**.
+
+---
+
+## Resumen de la Implementación: Sellos Visuales en UI (Fase 3 Iteración 2 y Cierre Fase 3 - CobroAdapter)
+
+### 1. Objetivo y Contexto
+
+Se completó la Iteración 2 y el cierre de la Fase 3, refactorizando [`item_cobro.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_cobro.xml) y [`CobroAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/CobroAdapter.kt) para renderizar distintivos de estado con esquemas de color contrastantes y etiquetas emocionales (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`, `Sin Lectura ⚠️`).
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Diseño e Interfaz:**
+  - `cardEstadoPago` (`MaterialCardView` con radio de 16dp) para el distintivo de estado.
+  - Colores dinámicos y detalles de auditoría de pago o fecha de vencimiento.
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/res/layout/item_cobro.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_cobro.xml)
+2. [`app/src/main/java/com/example/kilowatt/CobroAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/CobroAdapter.kt)
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de la tarea `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **36 pruebas pasadas, 0 falladas**.
+
+---
+
 ## Propuesta de Arquitectura: Integración de Hilt (Inyección de Dependencias)
 
 Se elaboró y registró el documento técnico [`Propuesta_Integracion_Hilt.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Propuesta_Integracion_Hilt.md) definiendo la estrategia para integrar Dagger Hilt en Kilowatt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `RepositoryModule` y `AppModule`).

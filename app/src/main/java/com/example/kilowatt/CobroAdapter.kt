@@ -36,15 +36,15 @@ class CobroAdapter(
         holder.binding.tvConsumoKwh.text = "%.1f kWh".format(item.consumoKwh)
         holder.binding.tvMontoPagarSoles.text = "S/ %.2f".format(item.montoPagarSoles)
 
-        // Estado: Si no hay lectura, advertir. Sino, ver si es Pagado, Vencido o Pendiente
+        // Estado: Renderizado dinámico del distintivo gráfico
         if (item.lecturaAnterior == 0.0 && item.lecturaActual == 0.0 && item.consumoKwh == 0.0) {
             holder.binding.tvEstadoPago.text = "Sin Lectura ⚠️"
-            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_SIN_LECTURA)
+            holder.binding.cardEstadoPago.setCardBackgroundColor(COLOR_BG_SIN_LECTURA)
             holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_SIN_LECTURA)
             holder.binding.tvDetallePago.visibility = android.view.View.GONE
         } else if (item.estadoPago.equals("PAGADO", ignoreCase = true)) {
-            holder.binding.tvEstadoPago.text = "Pagado 🟢"
-            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_PAGADO)
+            holder.binding.tvEstadoPago.text = "Pagado ✅"
+            holder.binding.cardEstadoPago.setCardBackgroundColor(COLOR_BG_PAGADO)
             holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_PAGADO)
 
             val contexto = holder.itemView.context
@@ -56,35 +56,37 @@ class CobroAdapter(
             }
             val metodoTexto = item.metodoPago ?: "Efectivo"
             holder.binding.tvDetallePago.text = contexto.getString(R.string.label_pagado_el, fechaTexto, metodoTexto)
+            holder.binding.tvDetallePago.setTextColor(COLOR_TEXT_PAGADO)
             holder.binding.tvDetallePago.visibility = android.view.View.VISIBLE
         } else if (item.estadoPago.equals("VENCIDO", ignoreCase = true)) {
             holder.binding.tvEstadoPago.text = "Vencido 🔴"
-            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_VENCIDO)
+            holder.binding.cardEstadoPago.setCardBackgroundColor(COLOR_BG_VENCIDO)
             holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_VENCIDO)
 
             val contexto = holder.itemView.context
             val diaLimite = com.example.kilowatt.util.SettingsManager(contexto).diaLimitePago
             val fechaLimiteStr = com.example.kilowatt.util.PeriodoDateUtils.formatearFechaLimite(item.mesPeriodo, diaLimite) ?: ""
             holder.binding.tvDetallePago.text = contexto.getString(R.string.label_vencio_el, fechaLimiteStr)
+            holder.binding.tvDetallePago.setTextColor(COLOR_TEXT_VENCIDO)
             holder.binding.tvDetallePago.visibility = android.view.View.VISIBLE
         } else {
             holder.binding.tvEstadoPago.text = "Pendiente 🟡"
-            holder.binding.tvEstadoPago.setBackgroundColor(COLOR_BG_PENDIENTE)
+            holder.binding.cardEstadoPago.setCardBackgroundColor(COLOR_BG_PENDIENTE)
             holder.binding.tvEstadoPago.setTextColor(COLOR_TEXT_PENDIENTE)
             holder.binding.tvDetallePago.visibility = android.view.View.GONE
         }
 
-        // Click sobre el Chip de Estado para alternar estado de pago
-        holder.binding.tvEstadoPago.setOnClickListener {
+        // Clic en la tarjeta/badge de estado para alternar cobro
+        holder.binding.cardEstadoPago.setOnClickListener {
             onEstadoChange?.invoke(item)
         }
 
-        // Botón WhatsApp (Delegado a la Activity mediante callback)
+        // Botón WhatsApp (Delegado mediante callback)
         holder.binding.btnEnviarWhatsapp.setOnClickListener {
             onSendWhatsAppClicked?.invoke(item) ?: onWhatsappClick?.invoke(item)
         }
 
-        // Botón PDF (Delegado a la Activity mediante callback)
+        // Botón PDF (Delegado mediante callback)
         holder.binding.btnExportarPdf.setOnClickListener {
             onGeneratePdfClicked?.invoke(item) ?: onPdfClick?.invoke(item)
         }
@@ -95,14 +97,14 @@ class CobroAdapter(
     }
 
     companion object {
-        private val COLOR_BG_SIN_LECTURA = Color.parseColor("#33F44336")
-        private val COLOR_TEXT_SIN_LECTURA = Color.parseColor("#D32F2F")
-        private val COLOR_BG_PENDIENTE = Color.parseColor("#33FFC107")
-        private val COLOR_TEXT_PENDIENTE = Color.parseColor("#FF8F00")
-        private val COLOR_BG_PAGADO = Color.parseColor("#334CAF50")
+        private val COLOR_BG_SIN_LECTURA = Color.parseColor("#FFEBEE")
+        private val COLOR_TEXT_SIN_LECTURA = Color.parseColor("#C62828")
+        private val COLOR_BG_PENDIENTE = Color.parseColor("#FFF8E1")
+        private val COLOR_TEXT_PENDIENTE = Color.parseColor("#EF6C00")
+        private val COLOR_BG_PAGADO = Color.parseColor("#E8F5E9")
         private val COLOR_TEXT_PAGADO = Color.parseColor("#2E7D32")
-        private val COLOR_BG_VENCIDO = Color.parseColor("#33F44336")
-        private val COLOR_TEXT_VENCIDO = Color.parseColor("#D32F2F")
+        private val COLOR_BG_VENCIDO = Color.parseColor("#FFEBEE")
+        private val COLOR_TEXT_VENCIDO = Color.parseColor("#C62828")
 
         val CobroDiffCallback = object : DiffUtil.ItemCallback<DetalleCobro>() {
             override fun areItemsTheSame(oldItem: DetalleCobro, newItem: DetalleCobro): Boolean {
