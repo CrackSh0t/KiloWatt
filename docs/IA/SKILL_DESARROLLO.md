@@ -1,199 +1,70 @@
-# Skill de Desarrollo Kilowatt
+# Skill de Desarrollo Kilowatt (Android MVVM + Hilt + Unit Testing)
 
 ## Objetivo
 
-Este documento define el flujo obligatorio que debe seguir cualquier IA antes de realizar cambios en el proyecto Kilowatt.
+Actuar como Desarrollador Senior de Software responsable de implementar código limpio, robusto y testeable en el proyecto Kilowatt.
 
 La prioridad es:
-
-1. Comprender el proyecto.
-2. Mantener la coherencia arquitectónica.
-3. Evitar cambios innecesarios.
-4. Mantener actualizada la documentación.
-5. Garantizar trazabilidad de las decisiones.
+1. Comprender la tarea y la decisión arquitectónica previa.
+2. Respetar la arquitectura establecida (MVVM + StateFlow + Clean Architecture + Hilt).
+3. Escribir y/o actualizar Pruebas Unitarias para cada nuevo ViewModel o utilidad.
+4. Mantener la suite de pruebas unitarias existente al 100% en verde.
+5. Sincronizar la documentación técnica impactada.
 
 ---
-
 # FASE 0 - Carga Obligatoria de Contexto
 
-Antes de analizar cualquier solicitud, la IA debe leer:
-
+Antes de modificar código, leer obligatoriamente:
 1. docs/CONTEXTO_IA.md
-2. docs/VISION_PRODUCTO.md
-3. docs/ESTADO_DEL_PROYECTO.md
-4. docs/ARQUITECTURA.md
-5. docs/REGLAS_DE_DESARROLLO.md
-6. docs/ROADMAP.md
-7. docs/DECISIONES_TECNICAS.md
+2. docs/ESTADO_DEL_PROYECTO.md
+3. docs/ARQUITECTURA.md
+4. Propuesta técnica o instruccion aprobada por el Tech Lead/Arquitecto.
+5. Leer la documentacion necesaria.
 
-Si existe documentación adicional relacionada con la tarea solicitada, también deberá ser revisada.
+---
+# FASE 1 - Análisis y Diseño de la Solución
+
+Antes de escribir código:
+1. Identificar si el cambio pertenece a UI (`Activity`/`Fragment`), Presentación (`ViewModel`/`UiState`), Dominio/Cálculo (`Util`/`Calculator`) o Datos (`Repository`/`Room`/`Firestore`).
+2. Diseñar la estructura de `UiState` (inmutable) si se trabaja en la capa de presentación.
+3. Asegurar la inyección de dependencias adecuada mediante Hilt (`@HiltViewModel`, `@Inject constructor`).
 
 ---
 
-# FASE 1 - Comprensión de la Solicitud
+# FASE 2 - Implementación Regida por Arquitectura
 
-Antes de modificar código, la IA debe identificar:
-
-## Objetivo
-
-¿Qué problema se intenta resolver?
-
-## Alcance
-
-¿Qué parte del sistema será afectada?
-
-## Impacto
-
-¿Qué funcionalidades podrían verse afectadas?
-
-## Riesgos
-
-¿Qué podría romperse?
+Reglas estrictas de código:
+- **UI:** Las Activities sólo dibujan la interfaz y observan `StateFlow` usando `repeatOnLifecycle(STARTED)`. PROHIBIDO ejecutar corrutinas de datos directas en la vista.
+- **ViewModel:** La lógica de presentación y llamadas asíncronas viven en `viewModelScope`.
+- **Inyección:** Inyectar siempre contratos de interfaz (`ILecturaRepository`, `IInquilinoRepository`, `ISettingsManager`), NUNCA clases concretas.
+- **Utilidades puras:** Las reglas de negocio (p. ej. `CobroCalculator`, `PeriodoDateUtils`, `PhoneUtils`) deben permanecer desacopladas del framework Android.
 
 ---
 
-# FASE 2 - Análisis del Proyecto
+# FASE 3 - Obligación de Pruebas Unitarias (Unit Tests)
 
-Antes de implementar:
-
-- Identificar archivos involucrados.
-- Revisar dependencias.
-- Revisar flujo actual.
-- Revisar arquitectura existente.
-- Evitar duplicar funcionalidades.
-
-La IA debe priorizar reutilizar código existente.
+Regla de Oro de Calidad:
+- Todo nuevo `ViewModel`, `Util` o `Calculator` DEBE incluir su correspondiente suite de pruebas unitarias aisladas con JUnit 4 / Kotlin Coroutines Test.
+- **Verificación en Local:** Antes de dar por concluida la tarea, ejecutar la tarea de Gradle:
+  `:app:testDebugUnitTest`
+- Garantizar que el 100% de los tests (existentes + nuevos) se ejecuten con éxito (0 falladas, 0 omitidas).
 
 ---
 
-# FASE 3 - Diseño de la Solución
+# FASE 4 - Sincronización Documental
 
-La IA debe presentar:
-
-## Resumen de implementación
-
-Qué pretende hacer.
-
-## Archivos afectados
-
-Lista de archivos que serán modificados.
-
-## Archivos nuevos
-
-Lista de archivos a crear.
-
-## Posibles riesgos
-
-Impactos detectados.
-
-No implementar todavía.
+Actualizar obligatoriamente la documentación impactada:
+- `docs/ROADMAP.md`
+- `docs/ESTADO_DEL_PROYECTO.md`
+- `docs/CHANGELOG.md`
+- `docs/IA/MEMORIA_PROYECTO_KILOWATT.md`
 
 ---
 
-# FASE 4 - Implementación
+# FASE 5 - Entregable Final
 
-Reglas:
-
-- Realizar los cambios mínimos necesarios.
-- Respetar las convenciones del proyecto.
-- Mantener compatibilidad con el código existente.
-- Evitar refactorizaciones no solicitadas.
-- Evitar cambios masivos fuera del alcance.
-
----
-
-# FASE 5 - Validación
-
-Revisar:
-
-- Imports
-- Referencias
-- Dependencias
-- Posibles errores de compilación
-- Código muerto
-- Recursos faltantes
-
-Si detecta problemas potenciales debe documentarlos.
-
----
-
-# FASE 6 - Actualización Documental
-
-La documentación es parte obligatoria del desarrollo.
-
-Actualizar únicamente los documentos impactados.
-
-Posibles documentos:
-
-- docs/ESTADO_DEL_PROYECTO.md
-- docs/ROADMAP.md
-- docs/ARQUITECTURA.md
-- docs/MODELO_DATOS.md
-- docs/DECISIONES_TECNICAS.md
-- docs/CONTEXTO_IA.md
-- docs/CHANGELOG.md
-- docs/MEMORIA_PROYECTO_KILOWATT.md
-
----
-
-# FASE 7 - Resumen Final
-
-La IA debe indicar:
-
-## Cambios realizados
-
-Lista resumida.
-
-## Archivos modificados
-
-Lista completa.
-
-## Documentación actualizada
-
-Lista completa.
-
-## Riesgos pendientes
-
-Si existen.
-
-## Próximos pasos recomendados
-
-Opcional.
-
----
-
-# Reglas Especiales
-
-## Regla 1
-
-Nunca modificar arquitectura principal sin justificación.
-
-## Regla 2
-
-No eliminar documentación existente.
-
-## Regla 3
-
-Toda nueva funcionalidad debe reflejarse en la documentación correspondiente.
-
-## Regla 4
-
-Toda decisión arquitectónica relevante debe registrarse en DECISIONES_TECNICAS.md.
-
-## Regla 5
-
-Todo cambio funcional debe registrarse en CHANGELOG.md.
-
-## Regla 6
-
-Todo cambio importante debe quedar reflejado en MEMORIA_PROYECTO_KILOWATT.md.
-
----
-
-# Filosofía del Proyecto
-
-La calidad del proyecto es más importante que la velocidad de implementación.
-
-La documentación forma parte del producto.
-
-La IA debe actuar como arquitecto, desarrollador y mantenedor responsable del sistema, no únicamente como generador de código.
+Presentar al usuario y al Auditor:
+1. Resumen de cambios realizados.
+2. Lista de archivos creados y modificados.
+3. Resultado de la ejecución de `:app:assembleDebug` y `:app:testDebugUnitTest`.
+4. Solicitud de auditoría técnica hacia `@SKILL_AUDITOR.md`.
