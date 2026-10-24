@@ -480,6 +480,40 @@ Se completó la Iteración 2 y el cierre de la Fase 3, refactorizando [`item_cob
 
 ---
 
+## Resumen de la Implementación: Fix de Seguridad Multi-Tenant y Purga Atómica de Room y SharedPreferences al Cerrar Sesión
+
+### 1. Objetivo y Contexto
+
+Se corrigió la falla de aislamiento de datos al cambiar de usuario en el mismo dispositivo, implementando la purga atómica de la base de datos SQLite (`database.clearAllTables()`) y de las preferencias locales (`settingsManager.limpiarConfiguracion()`) en `AuthRepository.kt` al ejecutar el cierre de sesión, y filtrando la ejecución de listeners remotos en `LecturaRepository.kt` e `InquilinoRepository.kt` mediante la verificación de `currentUid`.
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Purga Atómica Completa:** Invocación de `database.clearAllTables()` y `settingsManager.limpiarConfiguracion()` en `Dispatchers.IO` dentro de `cerrarSesion()`.
+* **Aislamiento por UID:** Validación de coincidencia de UID en los listeners en tiempo real de Firestore.
+* **Pruebas Unitarias:** Cobertura añadida en `AuthViewModelTest.kt`, alcanzando **37 pruebas unitarias pasadas al 100%**.
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/java/com/example/kilowatt/data/AuthRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AuthRepository.kt)
+2. [`app/src/main/java/com/example/kilowatt/util/ISettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/ISettingsManager.kt)
+3. [`app/src/main/java/com/example/kilowatt/util/SettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/SettingsManager.kt)
+4. [`app/src/main/java/com/example/kilowatt/data/LecturaRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/LecturaRepository.kt)
+5. [`app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt)
+6. [`app/src/test/java/com/example/kilowatt/AuthViewModelTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/AuthViewModelTest.kt)
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de la tarea `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **37 pruebas pasadas, 0 falladas**.
+
+---
+
 ## Propuesta de Arquitectura: Integración de Hilt (Inyección de Dependencias)
 
 Se elaboró y registró el documento técnico [`Propuesta_Integracion_Hilt.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Propuesta_Integracion_Hilt.md) definiendo la estrategia para integrar Dagger Hilt en Kilowatt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `RepositoryModule` y `AppModule`).

@@ -4,4 +4,5 @@ interface ISettingsManager {
     val diaLimitePago: Int
     val nombrePropietario: String
     val numeroPago: String
+    fun limpiarConfiguracion()
 }

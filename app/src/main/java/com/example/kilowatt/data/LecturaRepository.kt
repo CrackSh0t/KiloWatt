@@ -156,9 +156,11 @@ class LecturaRepository @Inject constructor(
     }
 
     private fun sincronizarFacturasRemotas() {
+        val currentUid = auth.currentUser?.uid ?: return
         val fRef = facturasRef ?: return
         scope.launch {
             fRef.addSnapshotListener { snapshot, error ->
+                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
                 if (error == null && snapshot != null) {
                     val lista = snapshot.toObjects<FacturaGeneral>()
                     scope.launch {
@@ -174,9 +176,11 @@ class LecturaRepository @Inject constructor(
     }
 
     private fun sincronizarLecturasRemotas() {
+        val currentUid = auth.currentUser?.uid ?: return
         val lRef = lecturasRef ?: return
         scope.launch {
             lRef.addSnapshotListener { snapshot, error ->
+                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
                 if (error == null && snapshot != null) {
                     val lista = snapshot.toObjects<Lectura>()
                     scope.launch {

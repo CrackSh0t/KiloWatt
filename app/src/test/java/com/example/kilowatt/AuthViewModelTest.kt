@@ -32,6 +32,7 @@ class AuthViewModelTest {
     private class FakeAuthRepository(
         private val shouldSucceed: Boolean = true,
     ) : IAuthRepository {
+        var sesionCerrada = false
         override val usuarioActual: FirebaseUser? = null
 
         override fun registrarUsuario(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
@@ -42,7 +43,9 @@ class AuthViewModelTest {
             onResult(shouldSucceed, if (shouldSucceed) null else "Credenciales inválidas")
         }
 
-        override fun cerrarSesion() {}
+        override fun cerrarSesion() {
+            sesionCerrada = true
+        }
 
         override fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {
             onResult(shouldSucceed, if (shouldSucceed) null else "Error al enviar correo")
@@ -83,5 +86,17 @@ class AuthViewModelTest {
 
         val state = viewModel.uiState.value
         assertTrue(state is AuthUiState.MensajeRecuperacion)
+    }
+
+    @Test
+    fun cerrarSesion_ejecutaLimpiezaYSesionCerrada() = runTest {
+        val repo = FakeAuthRepository()
+        val viewModel = AuthViewModel(repo)
+
+        viewModel.cerrarSesion()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(repo.sesionCerrada)
+        assertTrue(viewModel.uiState.value is AuthUiState.CargarSesion)
     }
 }

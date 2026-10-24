@@ -103,6 +103,7 @@ class ResumenCobrosViewModelTest {
             override val diaLimitePago: Int = 5
             override val nombrePropietario: String = "Juan Pérez"
             override val numeroPago: String = "987654321"
+            override fun limpiarConfiguracion() {}
         }
 
         val viewModel = ResumenCobrosViewModel(fakeLecturaRepo, fakeInquilinoRepo, settingsManager, testDispatcher)

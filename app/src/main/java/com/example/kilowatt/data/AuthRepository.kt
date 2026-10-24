@@ -1,10 +1,17 @@
 package com.example.kilowatt.data
 
+import com.example.kilowatt.util.ISettingsManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-class AuthRepository @Inject constructor() : IAuthRepository {
+class AuthRepository @Inject constructor(
+    private val database: AppDatabase,
+    private val settingsManager: ISettingsManager,
+) : IAuthRepository {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
@@ -34,7 +41,15 @@ class AuthRepository @Inject constructor() : IAuthRepository {
     }
 
     override fun cerrarSesion() {
-        auth.signOut()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                database.clearAllTables()
+            } catch (_: Exception) {}
+            try {
+                settingsManager.limpiarConfiguracion()
+            } catch (_: Exception) {}
+            auth.signOut()
+        }
     }
 
     override fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {

@@ -87,6 +87,28 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.etNumeroPago.setText(settingsManager.numeroPago)
         dialogBinding.etDiaLimitePago.setText(settingsManager.diaLimitePago.toString())
 
+        // Sincronización en tiempo real desde Firestore para el usuario activo
+        lifecycleScope.launch {
+            inquilinoRepository.obtenerPerfilPropietarioFlow().collect { datos ->
+                if (datos != null && dialog.isShowing) {
+                    val nombre = datos["nombrePropietario"]?.toString() ?: ""
+                    val numero = datos["numeroPago"]?.toString() ?: ""
+                    val diaLimite = (datos["diaLimitePago"] as? Long)?.toInt()
+                        ?: (datos["diaLimitePago"] as? Int) ?: 5
+
+                    (settingsManager as? SettingsManager)?.let {
+                        it.nombrePropietario = nombre
+                        it.numeroPago = numero
+                        it.diaLimitePago = diaLimite
+                    }
+
+                    dialogBinding.etNombrePropietario.setText(nombre)
+                    dialogBinding.etNumeroPago.setText(numero)
+                    dialogBinding.etDiaLimitePago.setText(diaLimite.toString())
+                }
+            }
+        }
+
         dialogBinding.btnGuardarPerfil.setOnClickListener {
             val nombre = dialogBinding.etNombrePropietario.text.toString().trim()
             val numero = dialogBinding.etNumeroPago.text.toString().trim()

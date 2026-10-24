@@ -63,6 +63,7 @@ class ConfiguracionViewModelTest {
         override val diaLimitePago: Int = 5
         override val nombrePropietario: String = "Juan Pérez"
         override val numeroPago: String = "987654321"
+        override fun limpiarConfiguracion() {}
     }
 
     @Test

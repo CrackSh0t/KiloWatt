@@ -29,4 +29,8 @@ class SettingsManager(context: Context) : ISettingsManager {
         set(value) {
             prefs.edit().putString("banco_yape_plin", value).apply()
         }
+
+    override fun limpiarConfiguracion() {
+        prefs.edit().clear().apply()
+    }
 }

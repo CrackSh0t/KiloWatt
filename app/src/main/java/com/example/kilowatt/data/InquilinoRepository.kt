@@ -253,9 +253,11 @@ class InquilinoRepository @Inject constructor(
     }
 
     private fun sincronizarSubmedidoresRemotos() {
+        val currentUid = auth.currentUser?.uid ?: return
         val subRef = submedidoresRef ?: return
         scope.launch {
             subRef.addSnapshotListener { snapshot, error ->
+                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
                 if (error == null && snapshot != null) {
                     val lista = snapshot.toObjects<Submedidor>()
                     scope.launch {
@@ -271,9 +273,11 @@ class InquilinoRepository @Inject constructor(
     }
 
     private fun sincronizarInquilinosRemotos() {
+        val currentUid = auth.currentUser?.uid ?: return
         val inqRef = inquilinosRef ?: return
         scope.launch {
             inqRef.addSnapshotListener { snapshot, error ->
+                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
                 if (error == null && snapshot != null) {
                     val lista = snapshot.toObjects<Inquilino>()
                     scope.launch {
