@@ -1,6 +1,6 @@
 # Informe de Auditoría Técnica: Fase 4 Iteración 2 y Cierre de Fase 4 (TopAppBar M3, OutlinedBox y MPAndroidChart)
 
-**Auditor:** Auditor Técnico Independiente de Software (conforme a `docs/IA/SKILL_AUDITOR.md`)  
+**Auditor:** Auditor Técnico Independiente de Software (conforme a `../../IA/SKILL_AUDITOR.md`)  
 **Objeto de Auditoría:** Estandarización de `MaterialToolbar` en actividades secundarias (`LecturasActivity`, `ResumenCobrosActivity`, `HistorialConsumoActivity`), homologación de formularios a `TextInputLayout.OutlinedBox` en `activity_lecturas.xml`, y ajuste de `extraBottomOffset` en `MPAndroidChart` (`HistorialConsumoActivity`).
 
 ---
@@ -74,9 +74,9 @@ Se aprueba la finalización de la Fase 4 y la culminación del ciclo de refinami
 
 ### Resumen de Archivos Involucrados
 
-1. [`app/src/main/res/layout/activity_lecturas.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_lecturas.xml)
-2. [`app/src/main/java/com/example/kilowatt/LecturasActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/LecturasActivity.kt)
-3. [`app/src/main/res/layout/activity_resumen_cobros.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_resumen_cobros.xml)
-4. [`app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt)
-5. [`app/src/main/res/layout/activity_historial_consumo.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_historial_consumo.xml)
-6. [`app/src/main/java/com/example/kilowatt/HistorialConsumoActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/HistorialConsumoActivity.kt)
+1. [`../../../app/src/main/res/layout/activity_lecturas.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_lecturas.xml)
+2. [`../../../app/src/main/java/com/example/kilowatt/LecturasActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/LecturasActivity.kt)
+3. [`../../../app/src/main/res/layout/activity_resumen_cobros.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_resumen_cobros.xml)
+4. [`../../../app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt)
+5. [`../../../app/src/main/res/layout/activity_historial_consumo.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_historial_consumo.xml)
+6. [`../../../app/src/main/java/com/example/kilowatt/HistorialConsumoActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/HistorialConsumoActivity.kt)

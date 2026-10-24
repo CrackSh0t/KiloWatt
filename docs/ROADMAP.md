@@ -1,58 +1,64 @@
-# Roadmap de Desarrollo - Kilowatt
+# Kilowatt ⚡ - Gestión, Prorrateo de Consumo Eléctrico y Cobranza Offline-First
 
-Este documento detalla las etapas de evolución, mejoras técnicas y nuevas funcionalidades planificadas para el proyecto **Kilowatt**.
-
----
-
-## Fase 1: Estabilización y Refactorización Arquitectónica 🛠️
-- [x] **Migración a MVVM (Model-View-ViewModel):**
-  - [x] Iteración 1: Migración de `HistorialConsumoActivity` a `HistorialConsumoViewModel` + `StateFlow` + `ILecturaRepository`.
-  - [x] Iteración 2: Migración de `ResumenCobrosActivity` a `ResumenCobrosViewModel` + `StateFlow` + `ResumenCobrosUiState`.
-  - [x] Iteración 3: Migración de `LecturasActivity` a `LecturasViewModel` + `StateFlow` + `LecturasUiState`.
-  - [x] Iteración 4: Migración de `AuthActivity` y `ConfiguracionActivity` a `AuthViewModel` & `ConfiguracionViewModel` + StateFlow.
-- [x] **Inyección de Dependencias (Hilt):**
-  - Integración de Dagger Hilt v2.60.1 para la gestión automatizada del ciclo de vida de repositorios y ViewModels (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `@Binds`, `@Provides`).
-- [x] **Desacoplamiento de Adapters:**
-  - Mover la generación de PDFs y los Intents de WhatsApp fuera de `CobroAdapter` hacia listeners/callbacks manejados por la UI o Casos de Uso.
+**Kilowatt** es una aplicación móvil Android nativa diseñada para propietarios y administradores de inmuebles. Permite automatizar la gestión, cálculo y prorrateo del recibo de luz general entre múltiples inquilinos y submedidores independientes, funcionando al **100% Offline-First**.
 
 ---
 
-## Fase 2: Soporte Offline y Consistencia de Datos 💾
-- [x] **Integración Offline-First (Room + Firestore):**
-  - [x] Iteración 1: Creación de `DatabaseModule` en Hilt y refactorización SSOT en `LecturaRepository` (Room local + sincronización asíncrona con Firestore).
-  - [x] Iteración 2: Migración SSOT de `InquilinoRepository` e integración de WorkManager (`SyncWorker`).
-  - Propuesta técnica redactada en [`Propuesta_Soporte_Offline_Room.md`](Propuestas/Implementadas/Propuesta_Soporte_Offline_Room.md).
-- [x] **Validaciones de Entrada Robustas:**
-  - Validación internacional y formato E.164 para números telefónicos de WhatsApp (`PhoneUtils`).
-  - Validación de periodos/meses para evitar duplicidad de facturas por errores tipográficos.
+## 📱 Capturas de Pantalla
+
+<div align="center">
+  <img src="docs/assets/main_screen.png" width="220" alt="Pantalla Principal" />
+  <img src="docs/assets/perfil_propietario.png" width="220" alt="Perfil del Propietario" />
+  <img src="docs/assets/resumen_cobros.png" width="220" alt="Resumen de Cobros" />
+  <img src="docs/assets/inquilinos.png" width="220" alt="Inquilinos y Medidores" />
+</div>
 
 ---
 
-## Fase 3: Gestión de Cobros y Pagos 💳
-- [x] **Personalización de Comprobantes PDF y Sellos Visuales:**
-  - [x] Iteración 1: Personalización de encabezados, datos del propietario y sellos gráficos de pago en comprobantes PDF (`PdfGenerator.kt`).
-  - [x] Iteración 2: Integración de sellos gráficos de estado de pago en la UI (`CobroAdapter.kt` / `item_cobro.xml`).
-- [x] **Estado de Pagos:**
-  - [x] Cobranza persistente (`PENDIENTE` / `PAGADO`) en Firestore y Room.
-  - [x] Fase 2A: Registro auditable de fecha de pago y medio de pago (Yape, Plin, Efectivo, Transferencia).
-  - [x] Fase 2B: Evaluación dinámica del estado `VENCIDO` basada en el día límite de pago configurable (`diaLimitePago`).
-- [x] **Historial y Gráficos de Consumo:**
-  - [x] Fases 1 y 2: Integración de MPAndroidChart, DTOs de dominio (`ConsumoHistorico.kt`), conector global `obtenerTodasLasLecturasFlow` y calculador asíncrono `ConsumoHistoricoCalculator`.
-  - [x] Fases 3 y 4: Pantalla `HistorialConsumoActivity` con componentes gráficos de líneas/barras, leyendas claras y vista de métricas clave.
+## 🚀 Características Principales
+
+* **Arquitectura Offline-First (SSOT):** Consulta de datos local ultrarrápida a velocidad de 0 ms. Sincronización transparente con la nube al recuperar conexión.
+* **Registro de Lecturas & Monotonicidad:** Validaciones inteligentes para evitar errores tipográficos o lecturas menores a la anterior.
+* **Motor de Cálculo & Prorrateo Exacto:** Distribución matemática proporcional basada en consumo real en kWh y prorrateo de áreas comunes (bombas de agua, pasillos) entre pagadores autorizados.
+* **Gestión de Cobranza & Sellos Visuales:** Seguimiento de estados de pago (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`) con registro de medio de pago (Yape, Plin, Transferencia, Efectivo).
+* **Generación de Comprobantes PDF:** Exportación A6 individual por inquilino y reporte general A5 con gráficos de pastel y datos bancarios/QR del propietario.
+* **Distribución vía WhatsApp:** Envío de comprobantes y resúmenes estructurados directamente al chat del inquilino con un solo clic.
+* **Histórico y Gráficos:** Visualización de tendencias de consumo del inmueble y por espacio con `MPAndroidChart`.
 
 ---
 
-## Fase 4: Rediseño Visual, UX Moderno & Polishing Material Design 3 🎨
-- [x] **Arquitectura de Información & Perfil del Propietario:**
-  - [x] Reubicar "Datos de Cobro" (Titular, Yape/Plin, Día Límite) desde `ConfiguracionActivity` al diálogo/pantalla "Perfil del Propietario" (al tocar Avatar en `MainActivity`).
-  - [x] Consolidar en la vista de Perfil: Datos de cobro del propietario, email de cuenta activa y botón "Cerrar Sesión".
-  - [x] Simplificar `ConfiguracionActivity` enfocándola al 100% en "Inquilinos y Medidores".
-- [x] **Estandarización de TopAppBar y Navegación:**
-  - [x] Implementar `TopAppBar` unificada en todas las pantallas secundarias con botón de retorno `←` consistente.
-- [x] **Refactorización UI con Material Design 3:**
-  - [x] Homogeneizar todos los formularios e inputs (`TextInputLayout`) al estilo `OutlinedBox`.
-  - [x] Optimizar la jerarquía visual de los botones "PDF" y "WhatsApp" en `ResumenCobrosActivity`.
-  - [x] Corregir padding y márgenes inferiores en los gráficos de `MPAndroidChart` (`HistorialConsumoActivity`) para evitar recortes de texto.
-- [x] **Soporte de Tema Oscuro (Dark Theme) & Accesibilidad:**
-  - [x] Recuperación de contraseña vía Firebase Auth en `AuthActivity`.
-  - [x] Revisión de contraste de colores, soporte completo para tema oscuro y accesibilidad (Material You).
+## 🛠️ Tecnologías y Arquitectura
+
+* **Lenguaje:** Kotlin
+* **Patrón de Arquitectura:** MVVM (Model-View-ViewModel) / Clean Architecture
+* **Inyección de Dependencias:** Dagger Hilt v2.60.1 (`@HiltAndroidApp`, `@HiltViewModel`, `@AndroidEntryPoint`)
+* **Persistencia Local:** Room Database v2.8.5 (Single Source of Truth) + KSP2
+* **Backend Remoto:** Cloud Firestore & Firebase Auth
+* **Sincronización en Segundo Plano:** Android WorkManager (`SyncWorker`)
+* **Concurrencia & Reactividad:** Kotlin Coroutines & `StateFlow` (recolección segura con `repeatOnLifecycle`)
+* **UI & Design:** Material Design 3 (M3), ViewBinding, `TextInputLayout.OutlinedBox`, `BottomSheetDialog`
+* **Pruebas Automatizadas:** Suite de 36 pruebas unitarias integradas (JUnit 4) en verde (100% éxito)
+
+---
+
+## 📊 Lógica de Cálculo
+
+La app calcula el cobro individual basándose en la proporción exacta de consumo sobre el total medido:
+
+1. **Porcentaje de Consumo Individual:**
+   $$\% \text{ Consumo} = \frac{\text{kWh Submedidor}}{\sum \text{kWh de todos los Submedidores}}$$
+
+2. **Pago Base (Soles):**
+   $$\text{Pago Base} = \% \text{ Consumo} \times \text{Monto Total del Recibo General}$$
+
+3. **Distribución de Área Común:**
+   El consumo de submedidores marcados como áreas comunes se distribuye equitativamente únicamente entre los inquilinos configurados como pagadores de cuota común.
+
+---
+
+## ⚙️ Configuración del Proyecto
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone [https://github.com/TU_USUARIO/kilowatt.git](https://github.com/TU_USUARIO/kilowatt.git)
+   cd kilowatt

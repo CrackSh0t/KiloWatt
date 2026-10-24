@@ -1,6 +1,6 @@
 # Informe de Auditoría Técnica: Fase 4 Iteración 1 (Centro de Perfil y Simplificación de ConfiguracionActivity)
 
-**Auditor:** Auditor Técnico Independiente de Software (conforme a `docs/IA/SKILL_AUDITOR.md`)  
+**Auditor:** Auditor Técnico Independiente de Software (conforme a `../../IA/SKILL_AUDITOR.md`)  
 **Objeto de Auditoría:** Implementación del Centro de "Perfil del Propietario" (`MainActivity` con botón Avatar + `BottomSheetDialog` + formulario de cobro y logout) y simplificación de `ConfiguracionActivity` ("Inquilinos y Medidores").
 
 ---
@@ -74,8 +74,8 @@ La Iteración 1 de la Fase 4 cumple rigurosamente con los estándares de calidad
 
 ### Resumen de Archivos Involucrados
 
-1. [`app/src/main/res/layout/activity_main.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_main.xml)
-2. [`app/src/main/res/layout/dialog_perfil_propietario.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_perfil_propietario.xml) [NUEVO]
-3. [`app/src/main/java/com/example/kilowatt/MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt)
-4. [`app/src/main/res/layout/activity_configuracion.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_configuracion.xml)
-5. [`app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt)
+1. [`../../../app/src/main/res/layout/activity_main.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_main.xml)
+2. [`../../../app/src/main/res/layout/dialog_perfil_propietario.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_perfil_propietario.xml) [NUEVO]
+3. [`../../../app/src/main/java/com/example/kilowatt/MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt)
+4. [`../../../app/src/main/res/layout/activity_configuracion.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_configuracion.xml)
+5. [`../../../app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt)
