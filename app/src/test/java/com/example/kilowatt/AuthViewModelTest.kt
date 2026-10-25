@@ -43,7 +43,7 @@ class AuthViewModelTest {
             onResult(shouldSucceed, if (shouldSucceed) null else "Credenciales inválidas")
         }
 
-        override fun cerrarSesion() {
+        override suspend fun cerrarSesion() {
             sesionCerrada = true
         }
 

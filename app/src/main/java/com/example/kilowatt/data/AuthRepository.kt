@@ -3,14 +3,15 @@ package com.example.kilowatt.data
 import com.example.kilowatt.util.ISettingsManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class AuthRepository @Inject constructor(
     private val database: AppDatabase,
     private val settingsManager: ISettingsManager,
+    private val lecturaRepository: ILecturaRepository,
+    private val inquilinoRepository: IInquilinoRepository,
 ) : IAuthRepository {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -40,16 +41,22 @@ class AuthRepository @Inject constructor(
             }
     }
 
-    override fun cerrarSesion() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                database.clearAllTables()
-            } catch (_: Exception) {}
-            try {
-                settingsManager.limpiarConfiguracion()
-            } catch (_: Exception) {}
+    override suspend fun cerrarSesion() = withContext(Dispatchers.IO) {
+        try {
+            lecturaRepository.cancelarListeners()
+        } catch (_: Exception) {}
+        try {
+            inquilinoRepository.cancelarListeners()
+        } catch (_: Exception) {}
+        try {
+            database.clearAllTables()
+        } catch (_: Exception) {}
+        try {
+            settingsManager.limpiarConfiguracion()
+        } catch (_: Exception) {}
+        try {
             auth.signOut()
-        }
+        } catch (_: Exception) {}
     }
 
     override fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {

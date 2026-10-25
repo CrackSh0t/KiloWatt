@@ -2,15 +2,18 @@ package com.example.kilowatt.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class InquilinoRepository @Inject constructor(
     private val inquilinoDao: InquilinoDao,
@@ -20,6 +23,10 @@ class InquilinoRepository @Inject constructor(
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    private var submedidoresListener: ListenerRegistration? = null
+    private var inquilinosListener: ListenerRegistration? = null
+    private var perfilListener: ListenerRegistration? = null
 
     private val uid: String?
         get() = auth.currentUser?.uid
@@ -33,7 +40,18 @@ class InquilinoRepository @Inject constructor(
     private val perfilRef
         get() = uid?.let { db.collection("usuarios").document(it).collection("perfil") }
 
-    // Guardar Inquilino y Submedidor - SSOT: Local Room primero, luego Firestore
+    override fun cancelarListeners() {
+        try {
+            submedidoresListener?.remove()
+            submedidoresListener = null
+            inquilinosListener?.remove()
+            inquilinosListener = null
+            perfilListener?.remove()
+            perfilListener = null
+        } catch (_: Exception) {}
+    }
+
+    // Guardar Inquilino y Submedidor - SSOT: Local Room primero con IDs unificados de Firestore
     override suspend fun guardarInquilinoYSubmedidor(
         nombreCompleto: String,
         telefono: String,
@@ -41,18 +59,21 @@ class InquilinoRepository @Inject constructor(
         esAreaComun: Boolean,
         pagaAreaComun: Boolean,
     ): Pair<Boolean, String?> {
-        val idSubmedidorTemp = "sub_${System.currentTimeMillis()}"
-        val idInquilinoTemp = if (esAreaComun) "" else "inq_${System.currentTimeMillis()}"
+        val inqRef = inquilinosRef
+        val subRef = submedidoresRef
+
+        val idSubmedidorReal = subRef?.document()?.id ?: "sub_${System.currentTimeMillis()}"
+        val idInquilinoReal = if (esAreaComun) "" else (inqRef?.document()?.id ?: "inq_${System.currentTimeMillis()}")
 
         val subTemp = Submedidor(
-            idSubmedidor = idSubmedidorTemp,
+            idSubmedidor = idSubmedidorReal,
             nombreEspacio = nombreEspacio,
             esAreaComun = esAreaComun,
             pagaAreaComun = if (esAreaComun) false else pagaAreaComun,
-            idInquilinoTitular = if (esAreaComun) null else idInquilinoTemp,
+            idInquilinoTitular = if (esAreaComun) null else idInquilinoReal,
         )
         val inqTemp = if (esAreaComun) null else Inquilino(
-            idInquilino = idInquilinoTemp,
+            idInquilino = idInquilinoReal,
             nombreCompleto = nombreCompleto,
             telefonoWhatsapp = telefono,
         )
@@ -66,42 +87,20 @@ class InquilinoRepository @Inject constructor(
 
         return suspendCancellableCoroutine { continuation ->
             try {
-                val inqRef = inquilinosRef
-                val subRef = submedidoresRef
-
                 if (inqRef == null || subRef == null) {
                     if (continuation.isActive) continuation.resume(Pair(true, null))
                     return@suspendCancellableCoroutine
                 }
 
                 val batch = db.batch()
-                val idSubmedidor = subRef.document().id
 
                 if (esAreaComun) {
-                    val nuevoSubmedidor = Submedidor(
-                        idSubmedidor = idSubmedidor,
-                        nombreEspacio = nombreEspacio,
-                        esAreaComun = true,
-                        pagaAreaComun = false,
-                        idInquilinoTitular = null,
-                    )
-                    batch.set(subRef.document(idSubmedidor), nuevoSubmedidor)
+                    batch.set(subRef.document(idSubmedidorReal), subTemp)
                 } else {
-                    val idInquilino = inqRef.document().id
-                    val nuevoInquilino = Inquilino(
-                        idInquilino = idInquilino,
-                        nombreCompleto = nombreCompleto,
-                        telefonoWhatsapp = telefono,
-                    )
-                    val nuevoSubmedidor = Submedidor(
-                        idSubmedidor = idSubmedidor,
-                        nombreEspacio = nombreEspacio,
-                        esAreaComun = false,
-                        pagaAreaComun = pagaAreaComun,
-                        idInquilinoTitular = idInquilino,
-                    )
-                    batch.set(inqRef.document(idInquilino), nuevoInquilino)
-                    batch.set(subRef.document(idSubmedidor), nuevoSubmedidor)
+                    if (inqTemp != null) {
+                        batch.set(inqRef.document(idInquilinoReal), inqTemp)
+                    }
+                    batch.set(subRef.document(idSubmedidorReal), subTemp)
                 }
 
                 batch.commit()
@@ -121,12 +120,14 @@ class InquilinoRepository @Inject constructor(
     override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> {
         sincronizarSubmedidoresRemotos()
         return submedidorDao.obtenerTodosLosSubmedidores()
+            .catch { emit(emptyList()) }
     }
 
     // SSOT: Inquilinos desde Room DAO + Sincronización background con Firestore
     override fun obtenerInquilinosFlow(): Flow<List<Inquilino>> {
         sincronizarInquilinosRemotos()
         return inquilinoDao.obtenerTodosLosInquilinos()
+            .catch { emit(emptyList()) }
     }
 
     // Actualizar cambios en Inquilino y Submedidor - SSOT: Local Room primero, luego Firestore
@@ -235,37 +236,44 @@ class InquilinoRepository @Inject constructor(
 
     // Obtener perfil del propietario en tiempo real
     override fun obtenerPerfilPropietarioFlow(): Flow<Map<String, Any>?> = kotlinx.coroutines.flow.callbackFlow {
+        val currentUid = auth.currentUser?.uid
         val pRef = perfilRef
-        if (pRef == null) {
+        if (pRef == null || currentUid == null) {
             trySend(null)
             close()
             return@callbackFlow
         }
 
-        val listener = pRef.document("datos_pago").addSnapshotListener { snapshot, error ->
+        perfilListener = pRef.document("datos_pago").addSnapshotListener { snapshot, error ->
+            if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
             if (error != null) {
-                close(error)
+                trySend(null)
                 return@addSnapshotListener
             }
             trySend(snapshot?.data)
         }
-        awaitClose { listener.remove() }
-    }
+        awaitClose {
+            try {
+                perfilListener?.remove()
+                perfilListener = null
+            } catch (_: Exception) {}
+        }
+    }.catch { emit(null) }
 
     private fun sincronizarSubmedidoresRemotos() {
         val currentUid = auth.currentUser?.uid ?: return
         val subRef = submedidoresRef ?: return
-        scope.launch {
-            subRef.addSnapshotListener { snapshot, error ->
-                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
-                if (error == null && snapshot != null) {
-                    val lista = snapshot.toObjects<Submedidor>()
-                    scope.launch {
-                        for (sub in lista) {
-                            try {
-                                submedidorDao.insertarSubmedidor(sub)
-                            } catch (_: Exception) {}
-                        }
+        if (submedidoresListener != null) return
+
+        submedidoresListener = subRef.addSnapshotListener { snapshot, error ->
+            if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
+            if (error == null && snapshot != null) {
+                val lista = snapshot.toObjects<Submedidor>()
+                scope.launch {
+                    for (sub in lista) {
+                        try {
+                            submedidorDao.insertarSubmedidor(sub)
+                        } catch (_: Exception) {}
                     }
                 }
             }
@@ -275,17 +283,17 @@ class InquilinoRepository @Inject constructor(
     private fun sincronizarInquilinosRemotos() {
         val currentUid = auth.currentUser?.uid ?: return
         val inqRef = inquilinosRef ?: return
-        scope.launch {
-            inqRef.addSnapshotListener { snapshot, error ->
-                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
-                if (error == null && snapshot != null) {
-                    val lista = snapshot.toObjects<Inquilino>()
-                    scope.launch {
-                        for (inq in lista) {
-                            try {
-                                inquilinoDao.insertarInquilino(inq)
-                            } catch (_: Exception) {}
-                        }
+        if (inquilinosListener != null) return
+
+        inquilinosListener = inqRef.addSnapshotListener { snapshot, error ->
+            if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
+            if (error == null && snapshot != null) {
+                val lista = snapshot.toObjects<Inquilino>()
+                scope.launch {
+                    for (inq in lista) {
+                        try {
+                            inquilinoDao.insertarInquilino(inq)
+                        } catch (_: Exception) {}
                     }
                 }
             }

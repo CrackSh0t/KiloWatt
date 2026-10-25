@@ -19,8 +19,9 @@ Antes de modificar código, leer obligatoriamente:
 2. docs/ESTADO_DEL_PROYECTO.md
 3. docs/ARQUITECTURA.md
 4. docs/IA/MEMORIA_PROYECTO_KILOWATT.md
-5. Propuesta técnica o instruccion aprobada por el Tech Lead/Arquitecto.
-6. Leer la documentacion necesaria.
+5. Propuesta técnica y/o instruccion aprobada por el Tech Lead/Arquitecto.
+6. Leer la documentacion necesaria dentro de docs/
+7. leer el còdigo de la aplicaciòn si es necesario.
 
 ---
 # FASE 1 - Análisis y Diseño de la Solución

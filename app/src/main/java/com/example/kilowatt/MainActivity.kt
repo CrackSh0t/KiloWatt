@@ -146,11 +146,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialogBinding.btnCerrarSesionDialog.setOnClickListener {
-            authRepository.cerrarSesion()
-            val intent = Intent(this, AuthActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
+            dialogBinding.btnCerrarSesionDialog.isEnabled = false
+            lifecycleScope.launch {
+                try {
+                    authRepository.cerrarSesion()
+                } catch (_: Exception) {}
+
+                if (!isFinishing && !isDestroyed) {
+                    dialog.dismiss()
+                    val intent = Intent(this@MainActivity, AuthActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    startActivity(intent)
+                    finish()
+                }
+            }
         }
 
         dialog.show()

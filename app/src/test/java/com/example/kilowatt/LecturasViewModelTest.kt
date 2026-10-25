@@ -62,6 +62,8 @@ class LecturasViewModelTest {
             fechaPago: Long?,
             metodoPago: String?,
         ): Pair<Boolean, String?> = Pair(true, null)
+
+        override fun cancelarListeners() {}
     }
 
     private class FakeInquilinoRepository(
@@ -87,6 +89,8 @@ class LecturasViewModelTest {
         override fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
             onComplete(true, null)
         }
+
+        override fun cancelarListeners() {}
     }
 
     @Test

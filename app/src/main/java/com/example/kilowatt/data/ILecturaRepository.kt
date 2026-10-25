@@ -14,4 +14,5 @@ interface ILecturaRepository {
         fechaPago: Long? = null,
         metodoPago: String? = null,
     ): Pair<Boolean, String?>
+    fun cancelarListeners()
 }

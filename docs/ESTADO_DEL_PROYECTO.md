@@ -32,4 +32,4 @@
 
 ## 3. Limitaciones y Deuda Técnica Detectada
 * **Fases 1, 2, 3 y 4 Completadas al 100%:** MVVM, StateFlow, Dagger Hilt DI, Offline-First SSOT (Room + Firestore + WorkManager), Material Design 3 TopAppBars unificadas, formularios OutlinedBox y gráficos MPAndroidChart optimizados.
-* **Seguridad y Aislamiento Multi-Tenant Completo:** Purga automática de tablas Room (`clearAllTables()`) y de SharedPreferences (`limpiarConfiguracion()`) al cerrar sesión, con sincronización de perfil por UID activa. Respaldado por 37 pruebas unitarias pasadas al 100%.
+* **Seguridad, Estabilidad y Cierre de Sesión Blindado:** Inmunidad multi-tenant con purga síncrona en `suspend fun cerrarSesion()` (`cancelarListeners()` ➔ `clearAllTables()` ➔ `limpiarConfiguracion()` ➔ `signOut()`). Validados con 37 pruebas unitarias en verde.

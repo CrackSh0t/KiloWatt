@@ -24,4 +24,5 @@ interface IInquilinoRepository {
         submedidor: Submedidor,
         onComplete: (Boolean, String?) -> Unit,
     )
+    fun cancelarListeners()
 }

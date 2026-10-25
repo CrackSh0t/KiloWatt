@@ -514,6 +514,38 @@ Se corrigió la falla de aislamiento de datos al cambiar de usuario en el mismo 
 
 ---
 
+## Resumen de la Implementación: Fix de Estabilidad en Logout/Login y Duplicación Temporal en Inquilinos
+
+### 1. Objetivo y Contexto
+
+Se corrigieron dos anomalías en pruebas extremas: la duplicación visual de inquilinos al guardar y el crash esporádico al cambiar de cuenta.
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **IDs Unificados de Clave Primaria:** Pre-generación de IDs desde la referencia de Firestore en `InquilinoRepository.kt`, garantizando reemplazo atómico por clave primaria `@PrimaryKey` en Room (`OnConflictStrategy.REPLACE`).
+* **Desenganche de Listeners Remotos (`cancelarListeners()`):** Invocación explícita de `cancelarListeners()` en los repositorios antes de ejecutar la purga SQLite `database.clearAllTables()`, eliminando conflictos de concurrencia al cerrar sesión.
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt)
+2. [`app/src/main/java/com/example/kilowatt/data/LecturaRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/LecturaRepository.kt)
+3. [`app/src/main/java/com/example/kilowatt/data/AuthRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AuthRepository.kt)
+4. [`app/src/main/java/com/example/kilowatt/data/IInquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/IInquilinoRepository.kt)
+5. [`app/src/main/java/com/example/kilowatt/data/ILecturaRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/ILecturaRepository.kt)
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de la tarea `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **37 pruebas pasadas, 0 falladas**.
+
+---
+
 ## Propuesta de Arquitectura: Integración de Hilt (Inyección de Dependencias)
 
 Se elaboró y registró el documento técnico [`Propuesta_Integracion_Hilt.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Propuesta_Integracion_Hilt.md) definiendo la estrategia para integrar Dagger Hilt en Kilowatt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `RepositoryModule` y `AppModule`).

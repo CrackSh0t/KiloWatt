@@ -11,7 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -24,7 +24,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResumenCobrosViewModelTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setUp() {
@@ -55,6 +55,8 @@ class ResumenCobrosViewModelTest {
             estadoActualizado = nuevoEstado
             return Pair(true, null)
         }
+
+        override fun cancelarListeners() {}
     }
 
     private class FakeInquilinoRepository(
@@ -80,6 +82,8 @@ class ResumenCobrosViewModelTest {
         override fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
             onComplete(true, null)
         }
+
+        override fun cancelarListeners() {}
     }
 
     @Test

@@ -2,11 +2,13 @@ package com.example.kilowatt
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.example.kilowatt.data.IAuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -81,8 +83,12 @@ class AuthViewModel @Inject constructor(
     }
 
     fun cerrarSesion() {
-        authRepository.cerrarSesion()
-        _uiState.value = AuthUiState.CargarSesion
+        viewModelScope.launch {
+            try {
+                authRepository.cerrarSesion()
+            } catch (_: Exception) {}
+            _uiState.value = AuthUiState.CargarSesion
+        }
     }
 
     class Factory(private val authRepository: IAuthRepository) : ViewModelProvider.Factory {

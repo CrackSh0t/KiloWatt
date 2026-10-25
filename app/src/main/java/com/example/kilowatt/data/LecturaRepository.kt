@@ -2,14 +2,16 @@ package com.example.kilowatt.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class LecturaRepository @Inject constructor(
     private val lecturaDao: LecturaDao,
@@ -19,6 +21,9 @@ class LecturaRepository @Inject constructor(
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    private var facturasListener: ListenerRegistration? = null
+    private var lecturasListener: ListenerRegistration? = null
 
     private val uid: String?
         get() = auth.currentUser?.uid
@@ -31,13 +36,20 @@ class LecturaRepository @Inject constructor(
 
     private fun sanitizeDocId(docId: String): String = docId.trim().replace("/", "_").replace("\\", "_")
 
+    override fun cancelarListeners() {
+        try {
+            facturasListener?.remove()
+            facturasListener = null
+            lecturasListener?.remove()
+            lecturasListener = null
+        } catch (_: Exception) {}
+    }
+
     // Guardar / Actualizar Recibo Base (Factura General) - SSOT: Local Room primero, luego Firestore
     override suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> {
         try {
             facturaDao.insertarFactura(factura)
-        } catch (_: Exception) {
-            // Continuar con sincronización remota aunque falle localmente
-        }
+        } catch (_: Exception) {}
 
         return suspendCancellableCoroutine { continuation ->
             try {
@@ -141,34 +153,37 @@ class LecturaRepository @Inject constructor(
     override fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> {
         sincronizarFacturasRemotas()
         return facturaDao.obtenerTodasLasFacturas()
+            .catch { emit(emptyList()) }
     }
 
     // SSOT: Lecturas por mes desde Room DAO + Sincronización background con Firestore
     override fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> {
         sincronizarLecturasRemotas()
         return lecturaDao.obtenerLecturasPorMes(mes.trim())
+            .catch { emit(emptyList()) }
     }
 
     // SSOT: Todas las lecturas desde Room DAO + Sincronización background con Firestore
     override fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> {
         sincronizarLecturasRemotas()
         return lecturaDao.obtenerTodasLasLecturas()
+            .catch { emit(emptyList()) }
     }
 
     private fun sincronizarFacturasRemotas() {
         val currentUid = auth.currentUser?.uid ?: return
         val fRef = facturasRef ?: return
-        scope.launch {
-            fRef.addSnapshotListener { snapshot, error ->
-                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
-                if (error == null && snapshot != null) {
-                    val lista = snapshot.toObjects<FacturaGeneral>()
-                    scope.launch {
-                        for (factura in lista) {
-                            try {
-                                facturaDao.insertarFactura(factura)
-                            } catch (_: Exception) {}
-                        }
+        if (facturasListener != null) return
+
+        facturasListener = fRef.addSnapshotListener { snapshot, error ->
+            if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
+            if (error == null && snapshot != null) {
+                val lista = snapshot.toObjects<FacturaGeneral>()
+                scope.launch {
+                    for (factura in lista) {
+                        try {
+                            facturaDao.insertarFactura(factura)
+                        } catch (_: Exception) {}
                     }
                 }
             }
@@ -178,17 +193,17 @@ class LecturaRepository @Inject constructor(
     private fun sincronizarLecturasRemotas() {
         val currentUid = auth.currentUser?.uid ?: return
         val lRef = lecturasRef ?: return
-        scope.launch {
-            lRef.addSnapshotListener { snapshot, error ->
-                if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
-                if (error == null && snapshot != null) {
-                    val lista = snapshot.toObjects<Lectura>()
-                    scope.launch {
-                        for (lectura in lista) {
-                            try {
-                                lecturaDao.insertarLectura(lectura)
-                            } catch (_: Exception) {}
-                        }
+        if (lecturasListener != null) return
+
+        lecturasListener = lRef.addSnapshotListener { snapshot, error ->
+            if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
+            if (error == null && snapshot != null) {
+                val lista = snapshot.toObjects<Lectura>()
+                scope.launch {
+                    for (lectura in lista) {
+                        try {
+                            lecturaDao.insertarLectura(lectura)
+                        } catch (_: Exception) {}
                     }
                 }
             }
