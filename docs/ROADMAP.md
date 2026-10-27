@@ -1,64 +1,67 @@
-# Kilowatt ⚡ - Gestión, Prorrateo de Consumo Eléctrico y Cobranza Offline-First
+# Roadmap y Hoja de Ruta - Kilowatt ⚡
 
-**Kilowatt** es una aplicación móvil Android nativa diseñada para propietarios y administradores de inmuebles. Permite automatizar la gestión, cálculo y prorrateo del recibo de luz general entre múltiples inquilinos y submedidores independientes, funcionando al **100% Offline-First**.
-
----
-
-## 📱 Capturas de Pantalla
-
-<div align="center">
-  <img src="docs/assets/main_screen.png" width="220" alt="Pantalla Principal" />
-  <img src="docs/assets/perfil_propietario.png" width="220" alt="Perfil del Propietario" />
-  <img src="docs/assets/resumen_cobros.png" width="220" alt="Resumen de Cobros" />
-  <img src="docs/assets/inquilinos.png" width="220" alt="Inquilinos y Medidores" />
-</div>
+**Fecha de última revisión:** Octubre 2026  
+**Responsable de Mantenimiento:** Agente Arquitecto (`@SKILL_ARQUITECTO.md`) / Agente Desarrollo (`@SKILL_DESARROLLO.md`)
 
 ---
 
-## 🚀 Características Principales
+## 🎯 Estado General del Roadmap
 
-* **Arquitectura Offline-First (SSOT):** Consulta de datos local ultrarrápida a velocidad de 0 ms. Sincronización transparente con la nube al recuperar conexión.
-* **Registro de Lecturas & Monotonicidad:** Validaciones inteligentes para evitar errores tipográficos o lecturas menores a la anterior.
-* **Motor de Cálculo & Prorrateo Exacto:** Distribución matemática proporcional basada en consumo real en kWh y prorrateo de áreas comunes (bombas de agua, pasillos) entre pagadores autorizados.
-* **Gestión de Cobranza & Sellos Visuales:** Seguimiento de estados de pago (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`) con registro de medio de pago (Yape, Plin, Transferencia, Efectivo).
-* **Generación de Comprobantes PDF:** Exportación A6 individual por inquilino y reporte general A5 con gráficos de pastel y datos bancarios/QR del propietario.
-* **Distribución vía WhatsApp:** Envío de comprobantes y resúmenes estructurados directamente al chat del inquilino con un solo clic.
-* **Histórico y Gráficos:** Visualización de tendencias de consumo del inmueble y por espacio con `MPAndroidChart`.
+```
+[Fase 1: MVVM & DI] ────► [Fase 2: SSOT Offline-First] ────► [Fase 3: Sellos & PDF] ────► [Fase 4: Rediseño M3] ────► [Fase 5: Métricas & Proyecciones]
+     (100% ✅)                    (100% ✅)                     (100% ✅)                  (100% ✅)                      (Planificada 🚀)
+```
 
 ---
 
-## 🛠️ Tecnologías y Arquitectura
+## 🚀 Fases e Iteraciones
 
-* **Lenguaje:** Kotlin
-* **Patrón de Arquitectura:** MVVM (Model-View-ViewModel) / Clean Architecture
-* **Inyección de Dependencias:** Dagger Hilt v2.60.1 (`@HiltAndroidApp`, `@HiltViewModel`, `@AndroidEntryPoint`)
-* **Persistencia Local:** Room Database v2.8.5 (Single Source of Truth) + KSP2
-* **Backend Remoto:** Cloud Firestore & Firebase Auth
-* **Sincronización en Segundo Plano:** Android WorkManager (`SyncWorker`)
-* **Concurrencia & Reactividad:** Kotlin Coroutines & `StateFlow` (recolección segura con `repeatOnLifecycle`)
-* **UI & Design:** Material Design 3 (M3), ViewBinding, `TextInputLayout.OutlinedBox`, `BottomSheetDialog`
-* **Pruebas Automatizadas:** Suite de 36 pruebas unitarias integradas (JUnit 4) en verde (100% éxito)
+### Fase 1: Refactorización Arquitectónica MVVM + Dagger Hilt (100% Completada)
+- [x] **Iteración 1.1:** Configuración de Dagger Hilt (`@HiltAndroidApp`, `@HiltViewModel`, `AppModule`, `RepositoryModule`).
+- [x] **Iteración 1.2:** Migración de `HistorialConsumoActivity` a `HistorialConsumoViewModel` + `StateFlow`.
+- [x] **Iteración 1.3:** Migración de `ResumenCobrosActivity` a `ResumenCobrosViewModel` + `StateFlow`.
+- [x] **Iteración 1.4:** Migración de `LecturasActivity` a `LecturasViewModel` + `StateFlow`.
+- [x] **Iteración 1.5:** Migración de `AuthActivity` y `ConfiguracionActivity` a ViewModels dedicados.
+- [x] **Testing:** Cobertura de ViewModels con unit tests aislados (JUnit 4 + Coroutines Test).
 
 ---
 
-## 📊 Lógica de Cálculo
-
-La app calcula el cobro individual basándose en la proporción exacta de consumo sobre el total medido:
-
-1. **Porcentaje de Consumo Individual:**
-   $$\% \text{ Consumo} = \frac{\text{kWh Submedidor}}{\sum \text{kWh de todos los Submedidores}}$$
-
-2. **Pago Base (Soles):**
-   $$\text{Pago Base} = \% \text{ Consumo} \times \text{Monto Total del Recibo General}$$
-
-3. **Distribución de Área Común:**
-   El consumo de submedidores marcados como áreas comunes se distribuye equitativamente únicamente entre los inquilinos configurados como pagadores de cuota común.
+### Fase 2: Arquitectura Offline-First SSOT (Room + Firestore + WorkManager) (100% Completada)
+- [x] **Iteración 2.1:** Configuración de `DatabaseModule` inyectando `AppDatabase` y DAOs en Hilt.
+- [x] **Iteración 2.2:** Refactorización Single Source of Truth (SSOT) en `LecturaRepository` (Lectura local en Room + Sincronización remota Firestore).
+- [x] **Iteración 2.3:** Refactorización SSOT en `InquilinoRepository` y sincronización diferida en background con `SyncWorker` (WorkManager).
+- [x] **Iteración 2.4:** Aislamiento de datos Multi-Tenant y purga atómica de Room y `SettingsManager` al cerrar sesión.
 
 ---
 
-## ⚙️ Configuración del Proyecto
+### Fase 3: Personalización de Comprobantes PDF y Sellos Visuales (100% Completada)
+- [x] **Iteración 3.1:** Refactorización de `PdfGenerator` inyectando `ISettingsManager` para incluir perfil del propietario, QR/cuentas de pago y día límite.
+- [x] **Iteración 3.2:** Implementación de sellos visuales emocionales de estado de pago (`PAGADO ✅`, `VENCIDO 🔴`, `PENDIENTE 🟡`) en los recibos PDF (A6/A5).
+- [x] **Iteración 3.3:** Implementación de tarjetas distintivas con sellos de estado y detalles de auditoría en la UI de la app (`item_cobro.xml` / `CobroAdapter.kt`).
 
-1. **Clonar el repositorio:**
-   ```bash
-   git clone [https://github.com/TU_USUARIO/kilowatt.git](https://github.com/TU_USUARIO/kilowatt.git)
-   cd kilowatt
+---
+
+### Fase 4: Rediseño de Experiencia de Usuario M3 (100% Completada)
+- [x] **Iteración 4.1:** Centro de Perfil del Propietario en `MainActivity` mediante `BottomSheetDialog` Material 3 y simplificación de `ConfiguracionActivity` enfocada en "Inquilinos y Medidores".
+- [x] **Iteración 4.2:** Estandarización de `TopAppBar` M3 unificada con navegación `←` en todas las pantallas secundarias.
+- [x] **Iteración 4.3:** Homogeneización de formularios a `TextInputLayout.OutlinedBox` y optimización de márgenes en `MPAndroidChart`.
+
+---
+
+### Fase 5: Métricas Avanzadas, Proyecciones y Exportaciones (Próxima Fase / En Planificación)
+- [ ] **Iteración 5.1:** Proyección estimada del recibo del mes en curso basada en la tasa de consumo diario actual.
+- [ ] **Iteración 5.2:** Exportación de historial consolidado de cobros e ingresos a formato Excel/CSV para contabilidad del arrendador.
+- [ ] **Iteración 5.3:** Mapeo de migraciones explícitas de Room (`Migration(from, to)`) para producción sin `fallbackToDestructiveMigration`.
+- [ ] **Iteración 5.4:** Soporte para modo oscuro (Dark Theme) adaptativo Material 3.
+
+---
+
+## 📈 Resumen de Progreso
+
+| Módulo / Fase | Tareas Totales | Completadas | Estado |
+| :--- | :---: | :---: | :---: |
+| **Fase 1: MVVM & Hilt** | 6 | 6 | 100% ✅ |
+| **Fase 2: SSOT Offline-First** | 4 | 4 | 100% ✅ |
+| **Fase 3: Sellos & Comprobantes** | 3 | 3 | 100% ✅ |
+| **Fase 4: Rediseño M3** | 3 | 3 | 100% ✅ |
+| **Fase 5: Métricas Avanzadas** | 4 | 0 | 0% ⏳ |

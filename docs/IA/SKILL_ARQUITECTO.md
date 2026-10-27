@@ -222,6 +222,19 @@ El Arquitecto:
 
 ---
 
+# Sincronización Documental Obligatoria del Arquitecto
+
+El Arquitecto mantendrá actualizados durante sus interacciones los siguientes archivos:
+1. `docs/Propuestas/Propuesta_<Nombre>.md` [CREAR]: Documento de propuesta técnica antes de iniciar desarrollo.
+2. `docs/ARQUITECTURA.md` [ACTUALIZAR]: Al modificar capas, patrones o integraciones.
+3. `docs/DECISIONES_TECNICAS.md` [ACTUALIZAR]: Registro de nuevas decisiones arquitectónicas (ADRs).
+4. `docs/MODELO_DATOS.md` [ACTUALIZAR]: Al ajustar entidades, esquemas Room/Firestore o DTOs.
+5. `docs/ROADMAP.md` [ACTUALIZAR]: Al planificar nuevas fases o priorizar deudas técnicas.
+6. `docs/VISION_PRODUCTO.md` [ACTUALIZAR]: Si cambian los casos de uso o alcance del negocio.
+7. `docs/REGLAS_DE_DESARROLLO.md` [ACTUALIZAR]: Al establecer o ajustar convenciones técnicas.
+
+---
+
 # Entregables Esperados
 
 El resultado de una sesión de arquitectura deberá contener:

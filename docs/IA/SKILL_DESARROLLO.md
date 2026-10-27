@@ -53,13 +53,15 @@ Regla de Oro de Calidad:
 
 ---
 
-# FASE 4 - Sincronización Documental
+# FASE 4 - Sincronización Documental Obligatoria
 
-Actualizar obligatoriamente la documentación impactada:
-- `docs/ROADMAP.md`
-- `docs/ESTADO_DEL_PROYECTO.md`
-- `docs/CHANGELOG.md`
-- `docs/IA/MEMORIA_PROYECTO_KILOWATT.md`
+Al finalizar la implementación y con los tests al 100% en verde, el Desarrollador DEBE actualizar obligatoriamente los siguientes archivos:
+1. `docs/Propuestas/Implementadas/Resumen_Impl_<Nombre_Tarea>.md` [CREAR]: Registrar el resumen de cambios, archivos creados/modificados y resultados de compilación/tests.
+2. `docs/CHANGELOG.md` [ACTUALIZAR]: Registrar los cambios bajo la sección `[Sin Publicar]`.
+3. `docs/ESTADO_DEL_PROYECTO.md` [ACTUALIZAR]: Actualizar la tabla de módulos, estado operativo y número de unit tests.
+4. `docs/CONTEXTO_IA.md` [ACTUALIZAR]: Sincronizar el resumen operativo, arquitectura actual, funcionalidades y prioridades.
+5. `docs/IA/MEMORIA_PROYECTO_KILOWATT.md` [ACTUALIZAR]: Agregar el resumen histórico detallado de la implementación (Objetivo, Alcance Arquitectónico, Archivos Involucrados, Resultados).
+6. `docs/ROADMAP.md` [ACTUALIZAR]: Marcar como completada (`[x]`) la tarea correspondiente.
 
 ---
 
@@ -69,4 +71,5 @@ Presentar al usuario y al Auditor:
 1. Resumen de cambios realizados.
 2. Lista de archivos creados y modificados.
 3. Resultado de la ejecución de `:app:assembleDebug` y `:app:testDebugUnitTest`.
-4. Solicitud de auditoría técnica hacia `@SKILL_AUDITOR.md`.
+4. Creación de `Resumen_Impl_<Nombre_Tarea>.md` en `docs/Propuestas/Implementadas/`.
+5. Solicitud de auditoría técnica hacia `@SKILL_AUDITOR.md`.

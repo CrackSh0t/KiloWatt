@@ -268,6 +268,15 @@ No requiere acción inmediata.
 
 ---
 
+# Sincronización Documental y Control de Deuda Técnica
+
+El Auditor mantendrá actualizados durante sus interacciones los siguientes archivos:
+1. `docs/Propuestas/Informe_Auditoria_<Nombre>.md` [CREAR]: Documento formal con el dictamen de auditoría y hallazgos.
+2. `docs/DEUDA_TECNICA.md` [ACTUALIZAR]: Registrar y categorizar hallazgos medios, bajos u observaciones no bloqueantes para seguimiento del Arquitecto.
+3. `docs/Propuestas/Implementadas/` [MOVER]: Al emitir la recomendación `APROBADO ✅`, trasladar la propuesta técnica original y el informe de auditoría a la carpeta `Implementadas/`.
+
+---
+
 # Formato Obligatorio de Entrega
 
 ## Resumen Ejecutivo
