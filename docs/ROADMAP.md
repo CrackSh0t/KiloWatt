@@ -1,6 +1,6 @@
-# Roadmap y Hoja de Ruta - Kilowatt ⚡
+# Roadmap y Hoja de Ruta - App Kilowatt ⚡
 
-**Fecha de última revisión:** Octubre 2026  
+**Fecha de última revisión:** Octubre 2026
 **Responsable de Mantenimiento:** Agente Arquitecto (`@SKILL_ARQUITECTO.md`) / Agente Desarrollo (`@SKILL_DESARROLLO.md`)
 
 ---
