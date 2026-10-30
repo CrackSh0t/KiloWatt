@@ -8,8 +8,8 @@
 ## 🎯 Estado General del Roadmap
 
 ```
-[Fase 1: MVVM & DI] ────► [Fase 2: SSOT Offline-First] ────► [Fase 3: Sellos & PDF] ────► [Fase 4: Rediseño M3] ────► [Fase 5: Métricas & Proyecciones]
-     (100% ✅)                    (100% ✅)                     (100% ✅)                  (100% ✅)                      (Planificada 🚀)
+[Fase 1: MVVM & DI] ──► [Fase 2: SSOT Offline-First] ──► [Fase 3: Sellos & PDF] ──► [Fase 4: Rediseño M3] ──► [Fase 5: Prorrateo Personas] ──► [Fase 6: Métricas & Proyecciones]
+     (100% ✅)                   (100% ✅)                    (100% ✅)                 (100% ✅)                    (100% ✅)                   (Planificada ⏳)
 ```
 
 ---
@@ -48,11 +48,18 @@
 
 ---
 
-### Fase 5: Métricas Avanzadas, Proyecciones y Exportaciones (Próxima Fase / En Planificación)
-- [ ] **Iteración 5.1:** Proyección estimada del recibo del mes en curso basada en la tasa de consumo diario actual.
-- [ ] **Iteración 5.2:** Exportación de historial consolidado de cobros e ingresos a formato Excel/CSV para contabilidad del arrendador.
-- [ ] **Iteración 5.3:** Mapeo de migraciones explícitas de Room (`Migration(from, to)`) para producción sin `fallbackToDestructiveMigration`.
-- [ ] **Iteración 5.4:** Soporte para modo oscuro (Dark Theme) adaptativo Material 3.
+### Fase 5: Prorrateo de Área Común por Ocupación / Personas (100% Completada)
+- [x] **Iteración 5.1:** Dominio y Motor de Cálculo Ponderado (`TipoProrrateoComun`, `Inquilino.numeroPersonas`, `CobroCalculator.calcularResumenMensual` y pruebas en `CobroCalculatorTest`).
+- [x] **Iteración 5.2:** Persistencia, Migración Room v6 (`MIGRATION_5_6`) y Sincronización Firestore (`InquilinoRepository`, `SettingsManager.tipoProrrateoComun`).
+- [x] **Iteración 5.3:** UI de Configuración y Gestión de Inquilinos (`activity_configuracion`, `dialog_editar_inquilino`, `item_inquilino` con badges de ocupantes, y selector de modalidad en perfil).
+- [x] **Iteración 5.4:** Visualización en Resumen de Cobros y Desglose en Comprobantes PDF (`ResumenCobrosViewModel`, `item_cobro`, `CobroAdapter` y `PdfGenerator`).
+
+---
+
+### Fase 6: Métricas Avanzadas, Proyecciones y Exportaciones (Planificada ⏳)
+- [ ] **Iteración 6.1:** Proyección estimada del recibo del mes en curso basada en la tasa de consumo diario actual.
+- [ ] **Iteración 6.2:** Exportación de historial consolidado de cobros e ingresos a formato Excel/CSV para contabilidad del arrendador.
+- [ ] **Iteración 6.3:** Soporte para modo oscuro (Dark Theme) adaptativo Material 3.
 
 ---
 
@@ -64,4 +71,5 @@
 | **Fase 2: SSOT Offline-First** | 4 | 4 | 100% ✅ |
 | **Fase 3: Sellos & Comprobantes** | 3 | 3 | 100% ✅ |
 | **Fase 4: Rediseño M3** | 3 | 3 | 100% ✅ |
-| **Fase 5: Métricas Avanzadas** | 4 | 0 | 0% ⏳ |
+| **Fase 5: Prorrateo Personas** | 4 | 2 | 50% 🚀 |
+| **Fase 6: Métricas Avanzadas** | 3 | 0 | 0% ⏳ |

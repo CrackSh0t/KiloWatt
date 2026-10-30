@@ -89,7 +89,8 @@ class ResumenCobrosViewModel @Inject constructor(
                 lecturaRepository.obtenerLecturasPorMesFlow(mes),
                 inquilinoRepository.obtenerSubmedidoresFlow(),
                 inquilinoRepository.obtenerInquilinosFlow(),
-            ) { facturas, lecturas, submedidores, inquilinos ->
+                inquilinoRepository.obtenerPerfilPropietarioFlow(),
+            ) { facturas, lecturas, submedidores, inquilinos, perfilMap ->
                 val factura = facturas.find { it.mesPeriodo.trim().equals(mes.trim(), ignoreCase = true) }
 
                 if (factura == null) {
@@ -104,7 +105,19 @@ class ResumenCobrosViewModel @Inject constructor(
                     return@combine
                 }
 
-                val diaLimite = settingsManager.diaLimitePago
+                val diaLimite = (perfilMap?.get("diaLimitePago") as? Long)?.toInt()
+                    ?: (perfilMap?.get("diaLimitePago") as? Int)
+                    ?: settingsManager.diaLimitePago
+
+                val tipoProrrateoStr = perfilMap?.get("tipoProrrateoComun")?.toString()
+                    ?: settingsManager.tipoProrrateoComun
+
+                val tipoProrrateoEnum = if (tipoProrrateoStr == "WEIGHTED_PERSONS") {
+                    com.example.kilowatt.data.TipoProrrateoComun.WEIGHTED_PERSONS
+                } else {
+                    com.example.kilowatt.data.TipoProrrateoComun.EQUITY
+                }
+
                 val resultado = withContext(dispatcher) {
                     CobroCalculator.calcularResumenMensual(
                         mes = mes,
@@ -113,6 +126,7 @@ class ResumenCobrosViewModel @Inject constructor(
                         lecturas = lecturas,
                         inquilinos = inquilinos,
                         diaLimitePago = diaLimite,
+                        tipoProrrateoComun = tipoProrrateoEnum,
                     )
                 }
 

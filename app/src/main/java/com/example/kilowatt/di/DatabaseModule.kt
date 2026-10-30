@@ -6,6 +6,7 @@ import com.example.kilowatt.data.AppDatabase
 import com.example.kilowatt.data.FacturaGeneralDao
 import com.example.kilowatt.data.InquilinoDao
 import com.example.kilowatt.data.LecturaDao
+import com.example.kilowatt.data.MIGRATION_5_6
 import com.example.kilowatt.data.SubmedidorDao
 import dagger.Module
 import dagger.Provides
@@ -27,7 +28,10 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "kilowatt_database",
-        ).fallbackToDestructiveMigration().build()
+        )
+            .addMigrations(MIGRATION_5_6)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

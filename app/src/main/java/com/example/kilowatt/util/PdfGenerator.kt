@@ -111,7 +111,12 @@ class PdfGenerator(
         yPos += 14f
 
         if (detalle.montoAreaComunSoles > 0) {
-            canvas.drawText("Cuota Área Común:", 25f, yPos, paint)
+            val etiquetaComun = if (settingsManager.tipoProrrateoComun == "WEIGHTED_PERSONS") {
+                "Cuota Área Común (${detalle.numeroPersonas} pers.):"
+            } else {
+                "Cuota Área Común:"
+            }
+            canvas.drawText(etiquetaComun, 25f, yPos, paint)
             canvas.drawText("S/ ${"%.2f".format(detalle.montoAreaComunSoles)}", 310f, yPos, paint)
             yPos += 14f
         }

@@ -48,9 +48,9 @@ Patrón por capas centrado en Android y Firebase:
 ## 4. Funcionalidades Implementadas
 * **Autenticación (`AuthActivity`):** Registro, inicio de sesión y recuperación de contraseña por correo vía Firebase Auth (`sendPasswordResetEmail`); control de sesión activa.
 * **Navegación (`MainActivity`):** Enrutamiento principal del sistema.
-* **Configuración (`ConfiguracionActivity`):** CRUD de inquilinos y submedidores en Firestore; guardado de datos de cobro en `SettingsManager`.
+* **Configuración (`ConfiguracionActivity`):** CRUD de inquilinos y submedidores en Firestore y Room (v6 con `numeroPersonas`), captura de ocupantes (`etNumeroPersonas`) y badges visuales (`tvPersonas`); guardado de datos de cobro y selector de modalidad de prorrateo (`EQUITY` / `WEIGHTED_PERSONS`) en `SettingsManager`.
 * **Registro de Lecturas (`LecturasActivity`):** Alta de recibo matriz mensual (S/ y kWh) y registro de lecturas por submedidor.
-* **Cálculo de Consumos (`CobroCalculator`):** Validación de consistencia (no negativos, monotonía creciente), costo unitario prorrateado y reparto de áreas comunes.
+* **Cálculo de Consumos (`CobroCalculator`):** Validación de consistencia (no negativos, monotonía creciente), costo unitario prorrateado y reparto de áreas comunes en modalidad equitativa (`EQUITY`) o ponderada por factor de ocupación/personas (`WEIGHTED_PERSONS`). Respaldado por 46 pruebas unitarias automatizadas.
 * **Cobros y Notificaciones (`ResumenCobrosActivity`, `CobroAdapter`):** Visualización de balances mensuales, gestión de cobranza persistente (`PENDIENTE`, `PAGADO` con auditoría de fecha/medio, y `VENCIDO` evaluado dinámicamente), redacción y apertura de WhatsApp con desglose de cobro, y generación/compartido de PDFs individuales y consolidados (`PdfGenerator`).
 
 ---

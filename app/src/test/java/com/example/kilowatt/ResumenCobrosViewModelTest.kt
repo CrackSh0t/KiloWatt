@@ -72,9 +72,16 @@ class ResumenCobrosViewModelTest {
             nombreEspacio: String,
             esAreaComun: Boolean,
             pagaAreaComun: Boolean,
+            numeroPersonas: Int,
         ): Pair<Boolean, String?> = Pair(true, null)
 
-        override suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?> = Pair(true, null)
+        override suspend fun guardarPerfilPropietario(
+            nombre: String,
+            numero: String,
+            diaLimite: Int,
+            tipoProrrateoComun: String,
+        ): Pair<Boolean, String?> = Pair(true, null)
+
         override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
             onComplete(true, null)
         }
@@ -107,6 +114,7 @@ class ResumenCobrosViewModelTest {
             override val diaLimitePago: Int = 5
             override val nombrePropietario: String = "Juan Pérez"
             override val numeroPago: String = "987654321"
+            override var tipoProrrateoComun: String = "EQUITY"
             override fun limpiarConfiguracion() {}
         }
 
@@ -121,5 +129,90 @@ class ResumenCobrosViewModelTest {
         assertEquals(100.0, estado.montoTotalRecibo, 0.001)
         assertEquals(1, estado.detalles.size)
         assertEquals("Ana Gómez", estado.detalles[0].nombreInquilino)
+    }
+
+    @Test
+    fun init_calculaResumenConProrrateoWeightedPersons_calculaCuotasProporcionales() = runTest {
+        val facturas = listOf(
+            FacturaGeneral(idFactura = "f1", mesPeriodo = "Agosto 2026", kwhTotalesRecibo = 100.0, montoTotalSoles = 100.0),
+        )
+        val submedidores = listOf(
+            Submedidor(idSubmedidor = "subComun", nombreEspacio = "Bomba Agua", esAreaComun = true, pagaAreaComun = false),
+            Submedidor(idSubmedidor = "sub1", nombreEspacio = "Depa 101", idInquilinoTitular = "inq1", pagaAreaComun = true),
+            Submedidor(idSubmedidor = "sub2", nombreEspacio = "Depa 102", idInquilinoTitular = "inq2", pagaAreaComun = true),
+        )
+        val inquilinos = listOf(
+            Inquilino(idInquilino = "inq1", nombreCompleto = "Familia Pérez", numeroPersonas = 4),
+            Inquilino(idInquilino = "inq2", nombreCompleto = "Juan Solo", numeroPersonas = 2),
+        )
+        val lecturas = listOf(
+            Lectura(idLectura = "lComun", idSubmedidor = "subComun", mesPeriodo = "Agosto 2026", lecturaAnterior = 0.0, lecturaActual = 30.0, consumoKwh = 30.0),
+            Lectura(idLectura = "l1", idSubmedidor = "sub1", mesPeriodo = "Agosto 2026", lecturaAnterior = 0.0, lecturaActual = 35.0, consumoKwh = 35.0),
+            Lectura(idLectura = "l2", idSubmedidor = "sub2", mesPeriodo = "Agosto 2026", lecturaAnterior = 0.0, lecturaActual = 35.0, consumoKwh = 35.0),
+        )
+
+        val fakeLecturaRepo = FakeLecturaRepository(facturas = facturas, lecturas = lecturas)
+        val fakeInquilinoRepo = object : IInquilinoRepository {
+            override fun obtenerInquilinosFlow(): Flow<List<Inquilino>> = flowOf(inquilinos)
+            override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> = flowOf(submedidores)
+            override fun obtenerPerfilPropietarioFlow(): Flow<Map<String, Any>?> = flowOf(
+                mapOf("tipoProrrateoComun" to "WEIGHTED_PERSONS", "diaLimitePago" to 5)
+            )
+            override suspend fun guardarInquilinoYSubmedidor(
+                nombreCompleto: String,
+                telefono: String,
+                nombreEspacio: String,
+                esAreaComun: Boolean,
+                pagaAreaComun: Boolean,
+                numeroPersonas: Int
+            ): Pair<Boolean, String?> = Pair(true, null)
+
+            override suspend fun guardarPerfilPropietario(
+                nombre: String,
+                numero: String,
+                diaLimite: Int,
+                tipoProrrateoComun: String
+            ): Pair<Boolean, String?> = Pair(true, null)
+
+            override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
+                onComplete(true, null)
+            }
+
+            override fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
+                onComplete(true, null)
+            }
+
+            override fun cancelarListeners() {}
+        }
+
+        val settingsManager = object : ISettingsManager {
+            override val diaLimitePago: Int = 5
+            override val nombrePropietario: String = "Propietario"
+            override val numeroPago: String = "987654321"
+            override var tipoProrrateoComun: String = "WEIGHTED_PERSONS"
+            override fun limpiarConfiguracion() {}
+        }
+
+        val viewModel = ResumenCobrosViewModel(fakeLecturaRepo, fakeInquilinoRepo, settingsManager, testDispatcher)
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val estado = viewModel.uiState.value
+        assertEquals(2, estado.detalles.size)
+
+        val det1 = estado.detalles.find { it.nombreInquilino == "Familia Pérez" }
+        val det2 = estado.detalles.find { it.nombreInquilino == "Juan Solo" }
+
+        assertNotNull(det1)
+        assertNotNull(det2)
+
+        // Total común = 30.0 Soles. 4 + 2 = 6 personas total.
+        // Familia Pérez (4 personas) -> 20.0 Soles de área común
+        // Juan Solo (2 personas) -> 10.0 Soles de área común
+        assertEquals(20.0, det1?.montoAreaComunSoles ?: 0.0, 0.001)
+        assertEquals(4, det1?.numeroPersonas)
+
+        assertEquals(10.0, det2?.montoAreaComunSoles ?: 0.0, 0.001)
+        assertEquals(2, det2?.numeroPersonas)
     }
 }

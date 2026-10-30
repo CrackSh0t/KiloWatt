@@ -36,14 +36,27 @@ class ConfiguracionActivity : AppCompatActivity() {
             finish()
         }
 
+        binding.cbEsAreaComun.setOnCheckedChangeListener { _, isChecked ->
+            binding.etNombreInquilino.isEnabled = !isChecked
+            binding.etTelefonoWhatsapp.isEnabled = !isChecked
+            binding.etNumeroPersonas.isEnabled = !isChecked
+            binding.cbPagaAreaComun.isEnabled = !isChecked
+            if (isChecked) {
+                binding.cbPagaAreaComun.isChecked = false
+            } else {
+                binding.cbPagaAreaComun.isChecked = true
+            }
+        }
+
         binding.btnGuardarInquilino.setOnClickListener {
             val nombre = binding.etNombreInquilino.text.toString()
             val telefono = binding.etTelefonoWhatsapp.text.toString()
             val espacio = binding.etNombreEspacio.text.toString()
             val esAreaComun = binding.cbEsAreaComun.isChecked
             val pagaAreaComun = binding.cbPagaAreaComun.isChecked
+            val numPersonas = binding.etNumeroPersonas.text.toString().toIntOrNull() ?: 1
 
-            viewModel.guardarDatosInquilino(nombre, telefono, espacio, esAreaComun, pagaAreaComun)
+            viewModel.guardarDatosInquilino(nombre, telefono, espacio, esAreaComun, pagaAreaComun, numPersonas)
         }
     }
 
@@ -82,12 +95,14 @@ class ConfiguracionActivity : AppCompatActivity() {
                 binding.etNombreInquilino.setText("")
                 binding.etTelefonoWhatsapp.setText("")
                 binding.etNombreEspacio.setText("")
+                binding.etNumeroPersonas.setText("1")
                 binding.cbEsAreaComun.isChecked = false
                 binding.cbPagaAreaComun.isChecked = true
 
                 binding.etNombreInquilino.clearFocus()
                 binding.etTelefonoWhatsapp.clearFocus()
                 binding.etNombreEspacio.clearFocus()
+                binding.etNumeroPersonas.clearFocus()
             }
 
             viewModel.consumirNotificacion()
@@ -99,14 +114,17 @@ class ConfiguracionActivity : AppCompatActivity() {
         val dialogBinding = DialogEditarInquilinoBinding.inflate(LayoutInflater.from(this))
         dialog.setContentView(dialogBinding.root)
 
+        val numPers = item.inquilino?.numeroPersonas?.coerceAtLeast(1) ?: 1
         dialogBinding.etEditNombre.setText(item.inquilino?.nombreCompleto ?: "")
         dialogBinding.etEditTelefono.setText(item.inquilino?.telefonoWhatsapp ?: "")
         dialogBinding.etEditEspacio.setText(item.submedidor.nombreEspacio)
+        dialogBinding.etEditNumeroPersonas.setText(numPers.toString())
         dialogBinding.cbEditPagaAreaComun.isChecked = item.submedidor.pagaAreaComun
 
         if (item.submedidor.esAreaComun) {
             dialogBinding.etEditNombre.isEnabled = false
             dialogBinding.etEditTelefono.isEnabled = false
+            dialogBinding.etEditNumeroPersonas.isEnabled = false
             dialogBinding.cbEditPagaAreaComun.isEnabled = false
         }
 
@@ -115,6 +133,7 @@ class ConfiguracionActivity : AppCompatActivity() {
             val nuevoTelefono = dialogBinding.etEditTelefono.text.toString().trim()
             val nuevoEspacio = dialogBinding.etEditEspacio.text.toString().trim()
             val nuevoPagaComun = dialogBinding.cbEditPagaAreaComun.isChecked
+            val numPersonasEdit = dialogBinding.etEditNumeroPersonas.text.toString().toIntOrNull() ?: 1
 
             val subActualizado = item.submedidor.copy(
                 nombreEspacio = nuevoEspacio,
@@ -124,6 +143,7 @@ class ConfiguracionActivity : AppCompatActivity() {
             val inqActualizado = item.inquilino?.copy(
                 nombreCompleto = nuevoNombre,
                 telefonoWhatsapp = nuevoTelefono,
+                numeroPersonas = numPersonasEdit.coerceAtLeast(1),
             )
 
             viewModel.actualizarInquilinoYSubmedidor(inqActualizado, subActualizado) { exito, error ->

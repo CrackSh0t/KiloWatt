@@ -5,6 +5,7 @@ import com.example.kilowatt.data.FacturaGeneral
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.data.TipoProrrateoComun
 
 data class ResumenCobroResult(
     val montoTotalRecibo: Double,
@@ -60,7 +61,8 @@ object CobroCalculator {
         submedidores: List<Submedidor>,
         lecturas: List<Lectura>,
         inquilinos: List<Inquilino>,
-        diaLimitePago: Int = 5
+        diaLimitePago: Int = 5,
+        tipoProrrateoComun: TipoProrrateoComun = TipoProrrateoComun.EQUITY
     ): ResumenCobroResult {
         val submedidoresUnicos = submedidores.distinctBy { it.nombreEspacio.trim().lowercase() }
         val lecturasUnicas = lecturas.distinctBy { it.idSubmedidor }
@@ -100,10 +102,18 @@ object CobroCalculator {
         val submedidoresParticulares = submedidoresUnicos.filter { !it.esAreaComun }
         val pagadoresAreaComun = submedidoresParticulares.filter { it.pagaAreaComun }
         val cantidadPagadores = pagadoresAreaComun.size
-        val cuotaAreaComunPorInquilino = if (cantidadPagadores > 0) {
-            totalSolesAreaComun / cantidadPagadores
-        } else {
-            0.0
+
+        val cuotaAreaComunUnitaria = when (tipoProrrateoComun) {
+            TipoProrrateoComun.EQUITY -> {
+                if (cantidadPagadores > 0) totalSolesAreaComun / cantidadPagadores else 0.0
+            }
+            TipoProrrateoComun.WEIGHTED_PERSONS -> {
+                val totalPersonas = pagadoresAreaComun.sumOf { sub ->
+                    val inq = inquilinos.find { it.idInquilino == sub.idInquilinoTitular }
+                    inq?.numeroPersonas?.coerceAtLeast(1) ?: 1
+                }
+                if (totalPersonas > 0) totalSolesAreaComun / totalPersonas else 0.0
+            }
         }
 
         // 4. Generar el detalle para cada inquilino particular (Fórmula Excel)
@@ -122,7 +132,17 @@ object CobroCalculator {
             val pagoBaseSoles = porcentajeConsumo * montoTotalRecibo
 
             // Sumar la cuota del área común si aplica
-            val cuotaComunAplicada = if (submedidor.pagaAreaComun) cuotaAreaComunPorInquilino else 0.0
+            val cuotaComunAplicada = if (submedidor.pagaAreaComun) {
+                when (tipoProrrateoComun) {
+                    TipoProrrateoComun.EQUITY -> cuotaAreaComunUnitaria
+                    TipoProrrateoComun.WEIGHTED_PERSONS -> {
+                        val personas = inquilino?.numeroPersonas?.coerceAtLeast(1) ?: 1
+                        personas * cuotaAreaComunUnitaria
+                    }
+                }
+            } else {
+                0.0
+            }
             val totalFinalPagar = pagoBaseSoles + cuotaComunAplicada
 
             val nombreFinal = when {
@@ -154,7 +174,8 @@ object CobroCalculator {
                 montoPagarSoles = totalFinalPagar,
                 estadoPago = estadoFinal,
                 fechaPago = lectura?.fechaPago,
-                metodoPago = lectura?.metodoPago
+                metodoPago = lectura?.metodoPago,
+                numeroPersonas = if (submedidor.esAreaComun) 1 else (inquilino?.numeroPersonas?.coerceAtLeast(1) ?: 1),
             )
         }
 
@@ -164,7 +185,7 @@ object CobroCalculator {
             sumaKwhSubmedidores = sumaKwhSubmedidores,
             precioKwhPromedio = precioKwhPromedio,
             totalSolesAreaComun = totalSolesAreaComun,
-            cuotaAreaComunPorInquilino = cuotaAreaComunPorInquilino,
+            cuotaAreaComunPorInquilino = cuotaAreaComunUnitaria,
             detalles = listaDetalle
         )
     }

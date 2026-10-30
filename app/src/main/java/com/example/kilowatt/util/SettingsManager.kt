@@ -30,6 +30,12 @@ class SettingsManager(context: Context) : ISettingsManager {
             prefs.edit().putString("banco_yape_plin", value).apply()
         }
 
+    override var tipoProrrateoComun: String
+        get() = prefs.getString("tipo_prorrateo_comun", "EQUITY") ?: "EQUITY"
+        set(value) {
+            prefs.edit().putString("tipo_prorrateo_comun", value).apply()
+        }
+
     override fun limpiarConfiguracion() {
         prefs.edit().clear().apply()
     }

@@ -32,6 +32,14 @@ class InquilinoAdapter(
         holder.binding.tvEspacio.text = if (item.submedidor.esAreaComun) "🏢 Área Común" else item.submedidor.nombreEspacio
         holder.binding.tvTelefono.text = telefono
 
+        if (item.submedidor.esAreaComun) {
+            holder.binding.tvPersonas.visibility = android.view.View.GONE
+        } else {
+            holder.binding.tvPersonas.visibility = android.view.View.VISIBLE
+            val numPersonas = item.inquilino?.numeroPersonas?.coerceAtLeast(1) ?: 1
+            holder.binding.tvPersonas.text = "👥 $numPersonas pers."
+        }
+
         holder.itemView.setOnClickListener {
             onItemClick(item)
         }

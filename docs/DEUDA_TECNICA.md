@@ -33,6 +33,12 @@ Este documento centraliza los hallazgos de deuda técnica, vulnerabilidades meno
   - *Descripción:* `AppDatabase` cuenta con `fallbackToDestructiveMigration()`. Para entornos de producción con datos acumulados por años, se debe reemplazar por instancias de `Migration(from, to)` explícitas.
   - *Estado:* Pendiente previa a lanzamiento masivo en producción.
 
+### 3.3. Dominio y Modelos de Negocio
+- [ ] **[Severidad: Observación / Baja] Cardinalidad de Factor de Ocupación por Espacio vs Inquilino:**
+  - *Origen:* Auditoría Técnica Iteración 5.1 (Prorrateo Ponderado).
+  - *Descripción:* `numeroPersonas` se almacena a nivel de `Inquilino`. Si un inquilino es titular de múltiples submedidores con `pagaAreaComun = true`, computará su número de personas en cada uno.
+  - *Estado:* Observación registrada. Se evaluará si en el futuro se requiere permitir una sobreescritura de ocupantes por submedidor individual.
+
 ---
 
 ## 4. Histórico de Deuda Técnica Saneada

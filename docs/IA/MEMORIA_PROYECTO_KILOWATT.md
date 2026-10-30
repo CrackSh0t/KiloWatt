@@ -549,3 +549,188 @@ Se corrigieron dos anomalías en pruebas extremas: la duplicación visual de inq
 ## Propuesta de Arquitectura: Integración de Hilt (Inyección de Dependencias)
 
 Se elaboró y registró el documento técnico [`Propuesta_Integracion_Hilt.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Propuesta_Integracion_Hilt.md) definiendo la estrategia para integrar Dagger Hilt en Kilowatt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `RepositoryModule` y `AppModule`).
+
+---
+
+## Resumen de la Implementación: Prorrateo de Área Común por Ocupación / Personas (Fase 5 - Iteración 5.1)
+
+### 1. Objetivo y Contexto
+
+Se implementó la base de dominio y el motor matemático para el cálculo de costos de áreas comunes ponderado por cantidad de habitantes u ocupantes (`WEIGHTED_PERSONS`), permitiendo una facturación justa en inmuebles multifamiliares y preservando la retrocompatibilidad total con la modalidad equitativa tradicional (`EQUITY`).
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Modelos de Dominio y Datos:**
+  - **[`TipoProrrateoComun.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/TipoProrrateoComun.kt) [NUEVO]:** Enum con los valores `EQUITY` (partes iguales) y `WEIGHTED_PERSONS` (ponderado por ocupantes).
+  - **[`Inquilino.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/Inquilino.kt):** Extensión de la entidad con `val numeroPersonas: Int = 1`.
+
+* **Motor de Cálculo:**
+  - **[`CobroCalculator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt):** Adición del parámetro `tipoProrrateoComun: TipoProrrateoComun = EQUITY` en `calcularResumenMensual`. Implementación de la fórmula proporcional:
+    $$P_{total} = \sum \max(1, \text{Personas}_i), \quad C_{persona} = \frac{\text{TotalSoles}_{comun}}{P_{total}}, \quad \text{Cuota}_i = \text{Personas}_i \times C_{persona}$$
+    Incluye sanitización defensiva mediante `.coerceAtLeast(1)` y protección contra división por cero si $P_{total} == 0$.
+
+* **Pruebas Unitarias:**
+  - **[`CobroCalculatorTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/CobroCalculatorTest.kt):** Cuatro nuevos casos de prueba unitaria validando proporcionalidad ponderada (4 vs 2 personas), fallbacks ante valores nulos o negativos, conservación de comportamiento equitativo y suma exacta al 100% frente al recibo general.
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/java/com/example/kilowatt/data/TipoProrrateoComun.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/TipoProrrateoComun.kt) [NUEVO]
+2. [`app/src/main/java/com/example/kilowatt/data/Inquilino.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/Inquilino.kt)
+3. [`app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt)
+4. [`app/src/test/java/com/example/kilowatt/CobroCalculatorTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/CobroCalculatorTest.kt)
+5. [`docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_1.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_1.md) [NUEVO]
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **41 pruebas pasadas, 0 falladas, 0 omitidas** (100% en verde).
+
+---
+
+## Resumen de la Implementación: Persistencia, Migración Room v6 y Sincronización Firestore (Fase 5 - Iteración 5.2)
+
+### 1. Objetivo y Contexto
+
+Se implementó la persistencia completa para la propiedad de ocupación `numeroPersonas` y la preferencia global `tipoProrrateoComun`, asegurando una migración SQLite sin pérdida de datos en Room (`MIGRATION_5_6`), sincronización reactiva en Cloud Firestore con normalización defensiva ante documentos históricos y consistencia entre `SettingsManager` y el backend.
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Migración de Base de Datos Local (Room):**
+  - **[`AppDatabase.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AppDatabase.kt):** Declaración de `MIGRATION_5_6` (`ALTER TABLE inquilinos ADD COLUMN numeroPersonas INTEGER NOT NULL DEFAULT 1`), incremento de versión a 6 y registro de `.addMigrations(MIGRATION_5_6)`.
+  - **[`DatabaseModule.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/di/DatabaseModule.kt):** Registro de la migración en el provider de Hilt para la instancia inyectada de `AppDatabase`.
+
+* **Capa de Datos y Repositorios:**
+  - **[`IInquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/IInquilinoRepository.kt) / [`InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt):** Soporte de `numeroPersonas` en operaciones `guardarInquilinoYSubmedidor` y `actualizarInquilinoYSubmedidor`. Normalización defensiva con `.coerceAtLeast(1)` en la escucha en tiempo real de Firestore (`sincronizarInquilinosRemotos`). Respaldo del parámetro `tipoProrrateoComun` en `guardarPerfilPropietario`.
+
+* **Gestor de Preferencias (SettingsManager):**
+  - **[`ISettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/ISettingsManager.kt) / [`SettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/SettingsManager.kt):** Adición de la propiedad `var tipoProrrateoComun: String` respaldada en `SharedPreferences` con valor por defecto `"EQUITY"`.
+  - **[`MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt) / [`ConfiguracionViewModel.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionViewModel.kt):** Sincronización en tiempo real de la preferencia con el perfil de Firestore.
+
+* **Pruebas Unitarias:**
+  - **[`AppDatabaseMigrationTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/AppDatabaseMigrationTest.kt) [NUEVO]:** Verificación del DDL de migración y versiones inicial/final mediante proxy dinámico. Total de pruebas incrementado a 44 (100% éxito).
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/java/com/example/kilowatt/data/AppDatabase.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AppDatabase.kt)
+2. [`app/src/main/java/com/example/kilowatt/di/DatabaseModule.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/di/DatabaseModule.kt)
+3. [`app/src/main/java/com/example/kilowatt/data/IInquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/IInquilinoRepository.kt)
+4. [`app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt)
+5. [`app/src/main/java/com/example/kilowatt/util/ISettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/ISettingsManager.kt)
+6. [`app/src/main/java/com/example/kilowatt/util/SettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/SettingsManager.kt)
+7. [`app/src/main/java/com/example/kilowatt/MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt)
+8. [`app/src/main/java/com/example/kilowatt/ConfiguracionViewModel.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionViewModel.kt)
+9. [`app/src/test/java/com/example/kilowatt/AppDatabaseMigrationTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/AppDatabaseMigrationTest.kt) [NUEVO]
+10. [`docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_2.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_2.md) [NUEVO]
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **44 pruebas pasadas, 0 falladas, 0 omitidas** (100% en verde).
+
+---
+
+## Resumen de la Implementación: UI de Configuración y Gestión de Inquilinos (Fase 5 - Iteración 5.3)
+
+### 1. Objetivo y Contexto
+
+Se implementaron las interfaces de usuario para la captura del número de ocupantes en los formularios de registro y edición de inquilinos, la visualización del badge de personas en las tarjetas de inquilinos, el selector de modalidad de prorrateo (`EQUITY` vs `WEIGHTED_PERSONS`) en el perfil del propietario, y las validaciones correspondientes en el ViewModel respaldadas por pruebas unitarias.
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Formularios e Interfaz de Usuario:**
+  - **[`activity_configuracion.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_configuracion.xml) / [`dialog_editar_inquilino.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_editar_inquilino.xml):** Adición de los campos numéricos `etNumeroPersonas` y `etEditNumeroPersonas` ("Cantidad de Ocupantes / Personas").
+  - **[`item_inquilino.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_inquilino.xml) / [`InquilinoAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/InquilinoAdapter.kt):** Adición y binding dinámico del badge `tvPersonas` (`👥 X pers.`), oculto en submedidores de área común.
+  - **[`dialog_perfil_propietario.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_perfil_propietario.xml) / [`MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt):** Integración de `MaterialAutoCompleteTextView` para la selección de modalidad de prorrateo de área común con sincronización en `SettingsManager` e `InquilinoRepository.guardarPerfilPropietario`.
+
+* **Capa de Presentación y Validaciones:**
+  - **[`ConfiguracionViewModel.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionViewModel.kt):** Extensión de `guardarDatosInquilino` aceptando `numeroPersonas: Int = 1` con sanitización `.coerceAtLeast(1)`.
+  - **[`ConfiguracionActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt):** Lógica interactiva con deshabilitación dinámica de campos cuando se activa el CheckBox de área común.
+
+* **Pruebas Unitarias:**
+  - **[`ConfiguracionViewModelTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/ConfiguracionViewModelTest.kt):** Pruebas unitarias para la captura y sanitización defensiva del número de ocupantes. Total de pruebas incrementado a 45 (100% éxito).
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/res/values/strings.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/values/strings.xml)
+2. [`app/src/main/res/layout/activity_configuracion.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/activity_configuracion.xml)
+3. [`app/src/main/res/layout/dialog_editar_inquilino.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_editar_inquilino.xml)
+4. [`app/src/main/res/layout/item_inquilino.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_inquilino.xml)
+5. [`app/src/main/res/layout/dialog_perfil_propietario.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/dialog_perfil_propietario.xml)
+6. [`app/src/main/java/com/example/kilowatt/InquilinoAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/InquilinoAdapter.kt)
+7. [`app/src/main/java/com/example/kilowatt/ConfiguracionViewModel.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionViewModel.kt)
+8. [`app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ConfiguracionActivity.kt)
+9. [`app/src/main/java/com/example/kilowatt/MainActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/MainActivity.kt)
+10. [`app/src/test/java/com/example/kilowatt/ConfiguracionViewModelTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/ConfiguracionViewModelTest.kt)
+11. [`docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_3.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_3.md) [NUEVO]
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **45 pruebas pasadas, 0 falladas, 0 omitidas** (100% en verde).
+
+---
+
+## Resumen de la Implementación: Visualización en Resumen de Cobros y Desglose en PDF (Fase 5 - Iteración 5.4 - Cierre Fase 5)
+
+### 1. Objetivo y Contexto
+
+Se completó la Fase 5 conectando la preferencia global `tipoProrrateoComun` con `ResumenCobrosViewModel`, reflejando la cuota de área común y el número de habitantes en las tarjetas de la UI (`item_cobro.xml` / `CobroAdapter.kt`), en los comprobantes en PDF (`PdfGenerator.kt`) y en las notificaciones de WhatsApp.
+
+---
+
+### 2. Alcance Arquitectónico
+
+* **Inyección de Preferencia y Cálculo Reactivo:**
+  - **[`ResumenCobrosViewModel.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosViewModel.kt):** Integración de `obtenerPerfilPropietarioFlow()` en el operador `combine` de `cargarDatosDelMes`. Recálculo automático del resumen de cobros al cambiar de modalidad (`EQUITY` vs `WEIGHTED_PERSONS`) o cantidad de ocupantes.
+
+* **Dominio y Motor de Cálculo:**
+  - **[`DetalleCobro.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/DetalleCobro.kt) / [`CobroCalculator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt):** Inclusión de `numeroPersonas` en `DetalleCobro` y asignación automática desde la entidad `Inquilino`.
+
+* **Interfaz de Usuario y Exportaciones:**
+  - **[`item_cobro.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_cobro.xml) / [`CobroAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/CobroAdapter.kt):** Renderizado de `tvCuotaComunDetalle` mostrando la cuota de área común y cantidad de ocupantes.
+  - **[`PdfGenerator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt) / [`ResumenCobrosActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt):** Personalización de la cuota común en comprobantes PDF A6 y mensajes de WhatsApp.
+
+* **Pruebas Unitarias:**
+  - **[`ResumenCobrosViewModelTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/ResumenCobrosViewModelTest.kt):** Extensión de suite validando prorrateo ponderado con múltiples departamentos y habitantes. Total de pruebas incrementado a 46 (100% éxito).
+
+---
+
+### 3. Detalle de Archivos Involucrados
+
+1. [`app/src/main/java/com/example/kilowatt/data/DetalleCobro.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/DetalleCobro.kt)
+2. [`app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt)
+3. [`app/src/main/java/com/example/kilowatt/ResumenCobrosViewModel.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosViewModel.kt)
+4. [`app/src/main/res/layout/item_cobro.xml`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/res/layout/item_cobro.xml)
+5. [`app/src/main/java/com/example/kilowatt/CobroAdapter.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/CobroAdapter.kt)
+6. [`app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/PdfGenerator.kt)
+7. [`app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/ResumenCobrosActivity.kt)
+8. [`app/src/test/java/com/example/kilowatt/ResumenCobrosViewModelTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/ResumenCobrosViewModelTest.kt)
+9. [`docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_4.md`](file:///home/fernando/StudioProjects/KiloWatt/docs/Propuestas/Implementadas/Resumen_Impl_Prorrateo_Area_Comun_Personas_Iteracion_5_4.md) [NUEVO]
+
+---
+
+### 4. Resultados de Validación
+
+- **Compilación Gradle:** Ejecución exitosa de `:app:assembleDebug`.
+- **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **46 pruebas pasadas, 0 falladas, 0 omitidas** (100% en verde).
+
+
+

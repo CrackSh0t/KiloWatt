@@ -87,6 +87,21 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.etNumeroPago.setText(settingsManager.numeroPago)
         dialogBinding.etDiaLimitePago.setText(settingsManager.diaLimitePago.toString())
 
+        val opcionesProrrateo = arrayOf(
+            getString(R.string.option_prorrateo_equity),
+            getString(R.string.option_prorrateo_weighted),
+        )
+        val adapterProrrateo = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            opcionesProrrateo,
+        )
+        dialogBinding.actvTipoProrrateo.setAdapter(adapterProrrateo)
+
+        val currentTipo = settingsManager.tipoProrrateoComun
+        val indexInicial = if (currentTipo == "WEIGHTED_PERSONS") 1 else 0
+        dialogBinding.actvTipoProrrateo.setText(opcionesProrrateo[indexInicial], false)
+
         // Sincronización en tiempo real desde Firestore para el usuario activo
         lifecycleScope.launch {
             inquilinoRepository.obtenerPerfilPropietarioFlow().collect { datos ->
@@ -96,15 +111,21 @@ class MainActivity : AppCompatActivity() {
                     val diaLimite = (datos["diaLimitePago"] as? Long)?.toInt()
                         ?: (datos["diaLimitePago"] as? Int) ?: 5
 
+                    val tipoProrrateo = datos["tipoProrrateoComun"]?.toString() ?: "EQUITY"
+
                     (settingsManager as? SettingsManager)?.let {
                         it.nombrePropietario = nombre
                         it.numeroPago = numero
                         it.diaLimitePago = diaLimite
+                        it.tipoProrrateoComun = tipoProrrateo
                     }
 
                     dialogBinding.etNombrePropietario.setText(nombre)
                     dialogBinding.etNumeroPago.setText(numero)
                     dialogBinding.etDiaLimitePago.setText(diaLimite.toString())
+
+                    val indexUpdate = if (tipoProrrateo == "WEIGHTED_PERSONS") 1 else 0
+                    dialogBinding.actvTipoProrrateo.setText(opcionesProrrateo[indexUpdate], false)
                 }
             }
         }
@@ -113,6 +134,7 @@ class MainActivity : AppCompatActivity() {
             val nombre = dialogBinding.etNombrePropietario.text.toString().trim()
             val numero = dialogBinding.etNumeroPago.text.toString().trim()
             val diaStr = dialogBinding.etDiaLimitePago.text.toString().trim()
+            val selectedProrrateoText = dialogBinding.actvTipoProrrateo.text.toString()
 
             if (nombre.isEmpty() || numero.isEmpty() || diaStr.isEmpty()) {
                 Toast.makeText(this, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -120,16 +142,24 @@ class MainActivity : AppCompatActivity() {
             }
 
             val diaLimite = diaStr.toIntOrNull() ?: 5
+            val tipoProrrateo = if (selectedProrrateoText == opcionesProrrateo[1]) "WEIGHTED_PERSONS" else "EQUITY"
+
             (settingsManager as? SettingsManager)?.let {
                 it.nombrePropietario = nombre
                 it.numeroPago = numero
                 it.diaLimitePago = diaLimite
+                it.tipoProrrateoComun = tipoProrrateo
             }
 
             dialogBinding.btnGuardarPerfil.isEnabled = false
             lifecycleScope.launch {
                 try {
-                    val (exito, error) = inquilinoRepository.guardarPerfilPropietario(nombre, numero, diaLimite)
+                    val (exito, error) = inquilinoRepository.guardarPerfilPropietario(
+                        nombre = nombre,
+                        numero = numero,
+                        diaLimite = diaLimite,
+                        tipoProrrateoComun = tipoProrrateo,
+                    )
                     if (exito) {
                         Toast.makeText(this@MainActivity, "Perfil de cobro actualizado", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()

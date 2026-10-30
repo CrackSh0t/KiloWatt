@@ -12,8 +12,14 @@ interface IInquilinoRepository {
         nombreEspacio: String,
         esAreaComun: Boolean,
         pagaAreaComun: Boolean,
+        numeroPersonas: Int = 1,
     ): Pair<Boolean, String?>
-    suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?>
+    suspend fun guardarPerfilPropietario(
+        nombre: String,
+        numero: String,
+        diaLimite: Int,
+        tipoProrrateoComun: String = "EQUITY",
+    ): Pair<Boolean, String?>
     fun actualizarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,

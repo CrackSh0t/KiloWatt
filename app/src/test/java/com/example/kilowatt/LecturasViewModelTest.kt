@@ -79,9 +79,15 @@ class LecturasViewModelTest {
             nombreEspacio: String,
             esAreaComun: Boolean,
             pagaAreaComun: Boolean,
+            numeroPersonas: Int,
         ): Pair<Boolean, String?> = Pair(true, null)
 
-        override suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?> = Pair(true, null)
+        override suspend fun guardarPerfilPropietario(
+            nombre: String,
+            numero: String,
+            diaLimite: Int,
+            tipoProrrateoComun: String,
+        ): Pair<Boolean, String?> = Pair(true, null)
         override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
             onComplete(true, null)
         }

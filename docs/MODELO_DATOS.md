@@ -15,6 +15,7 @@ Representa al arrendatario o titular asignado a uno o más espacios físicos / s
   - `idInquilino`: `Long` (o `String`) — **Clave Primaria** (autogenerada en Room).
   - `nombreCompleto`: `String` — Nombre y apellidos del inquilino.
   - `telefonoWhatsapp`: `String` — Teléfono de contacto para el envío de notificaciones y recibos por WhatsApp.
+  - `numeroPersonas`: `Int` — Cantidad de ocupantes que habitan el espacio asociado (por defecto `1`), utilizado como factor de ponderación en la modalidad de prorrateo por personas.
 
 ### 1.2. `Submedidor`
 Representa un medidor de luz secundario asignado a una habitación, departamento o zona específica (incluyendo áreas comunes).
@@ -63,6 +64,7 @@ Documentos que representan inquilinos registrados por el arrendador.
   - `idInquilino`: `String`
   - `nombreCompleto`: `String`
   - `telefonoWhatsapp`: `String`
+  - `numeroPersonas`: `Int` (por defecto `1` para documentos existentes sin este campo)
 
 ### 2.2. Colección `usuarios/{uid}/submedidores`
 Documentos que representan los submedidores registrados.
@@ -102,6 +104,7 @@ Información de cobranza y perfil del arrendador.
   - `nombrePropietario`: `String` — Nombre del dueño o administrador para emisión del comprobante.
   - `numeroPago`: `String` — Cuenta o número telefónico de pago (ej. Yape / Plin / BCP).
   - `diaLimitePago`: `Int` — Día del mes fijado como fecha límite de pago.
+  - `tipoProrrateoComun`: `String` — Modalidad de prorrateo de áreas comunes (`"EQUITY"` por departamento o `"WEIGHTED_PERSONS"` por número de personas). Por defecto `"EQUITY"`.
 
 ---
 
@@ -152,6 +155,11 @@ Tipo algebraico sellado para validación de consistencia de lecturas.
 - `Valido`: Estado exitoso.
 - `Invalido(mensaje: String)`: Estado de error con descripción del problema.
 
+### 3.6. `TipoProrrateoComun`
+Enum de dominio que especifica la modalidad matemática de distribución del consumo de áreas comunes entre los submedidores pagadores.
+- `EQUITY`: División equitativa (en partes iguales) entre la cantidad total de submedidores particulares que tengan `pagaAreaComun = true`.
+- `WEIGHTED_PERSONS`: División ponderada en función del factor de ocupación (`numeroPersonas`) asignado a cada inquilino titular de los submedidores pagadores.
+
 ---
 
 ## 4. Relaciones y Cardinalidades
@@ -191,7 +199,10 @@ Tipo algebraico sellado para validación de consistencia de lecturas.
 4. **Protección contra división por cero:**
    - Si los kWh de la factura general son cero o no existen, el costo por kWh resultante es `0.0` para salvaguardar la estabilidad del cálculo.
 5. **Prorrateo de Áreas Comunes:**
-   - El consumo de los submedidores marcados con `esAreaComun = true` se valoriza al costo unitario del kWh y su importe resultante se distribuye equitativamente solo entre aquellos submedidores que tengan `pagaAreaComun = true`.
+   - El consumo de los submedidores marcados con `esAreaComun = true` se valoriza al costo unitario del kWh resultante de la factura general y su importe total en soles se distribuye según la modalidad seleccionada en `tipoProrrateoComun`:
+     - **Modalidad `EQUITY`:** Se divide en partes iguales entre la cantidad de submedidores con `pagaAreaComun = true`.
+     - **Modalidad `WEIGHTED_PERSONS`:** Se divide entre la suma de personas de las unidades pagadoras ($P_{total} = \sum \text{Personas}_i$) y se asigna proporcionalmente a cada unidad ($\text{Cuota}_i = \text{Personas}_i \times \frac{\text{TotalSoles}_{comun}}{P_{total}}$).
+     - **Regla de sanitización defensiva:** Si un inquilino tiene `numeroPersonas <= 0` o un submedidor pagador no tiene inquilino asignado, se asume un factor por defecto de 1 persona. Si la suma total de personas es cero, la cuota es `0.0`.
 
 ---
 
@@ -209,32 +220,33 @@ Tipo algebraico sellado para validación de consistencia de lecturas.
 | PK idInquilino    |    | PK mesPeriodo      |  | nombrePropietario  |
 | nombreCompleto    |    | montoTotalSoles    |  | numeroPago         |
 | telefonoWhatsapp  |    | kwhTotales         |  | diaLimitePago      |
-+-------------------+    +--------------------+  +--------------------+
-       ^                        |
-       | 0..1                   | (mesPeriodo)
-       |                        |
-       | (idInquilino)          |
-+-------------------+           |
-|    SUBMEDIDOR     |           |
-+-------------------+           |
-| PK idSubmedidor   |           |
-| FK idInquilino    |           |
-| nombreEspacio     |           |
-| esAreaComun       |           |
-| pagaAreaComun     |           |
-+-------------------+           |
-       |                        |
-       | 1:N                    v 1:N
-       |                 +--------------------+
-       +---------------->|      LECTURA       |
-          (idSubmedidor) +--------------------+
-                         | PK idLectura       |
-                         | FK idSubmedidor    |
-                         | FK mesPeriodo      |
-                         | lecturaAnterior    |
-                         | lecturaActual      |
-                         | consumoKwh         |
-                         +--------------------+
+| numeroPersonas    |    +--------------------+  | tipoProrrateoComun |
++-------------------+              |             +--------------------+
+       ^                           | (mesPeriodo)
+       | 0..1                      |
+       |                           |
+       | (idInquilinoTitular)      |
++-------------------+              |
+|    SUBMEDIDOR     |              |
++-------------------+              |
+| PK idSubmedidor   |              |
+| FK idInquilino    |              |
+| nombreEspacio     |              |
+| esAreaComun       |              |
+| pagaAreaComun     |              |
++-------------------+              |
+       |                           |
+       | 1:N                       v 1:N
+       |                    +--------------------+
+       +------------------->|      LECTURA       |
+          (idSubmedidor)    +--------------------+
+                            | PK idLectura       |
+                            | FK idSubmedidor    |
+                            | FK mesPeriodo      |
+                            | lecturaAnterior    |
+                            | lecturaActual      |
+                            | consumoKwh         |
+                            +--------------------+
 ```
 
 ---
@@ -251,7 +263,11 @@ Tipo algebraico sellado para validación de consistencia de lecturas.
 - Para las lecturas en Firestore, se busca y filtra mediante queries estructuradas por periodo (`whereEqualTo("mesPeriodo", mes)`).
 
 ### 7.3. Manejo de Preferencias y Perfil del Arrendador
-- Los datos de pago del propietario (`nombrePropietario`, `numeroPago`, `diaLimitePago`) no están modelados en una tabla de Room; se persisten localmente en `SharedPreferences` mediante `SettingsManager` para acceso síncrono rápido y se respaldan en la nube en el documento Firestore `usuarios/{uid}/perfil/datos_pago`.
+- Los datos de pago del propietario (`nombrePropietario`, `numeroPago`, `diaLimitePago`, `tipoProrrateoComun`) no están modelados en una tabla de Room; se persisten localmente en `SharedPreferences` mediante `SettingsManager` para acceso síncrono rápido y se respaldan en la nube en el documento Firestore `usuarios/{uid}/perfil/datos_pago`.
 
 ### 7.4. Migraciones
-- `AppDatabase` cuenta con configuración `fallbackToDestructiveMigration()`. En caso de cambios estructurales en esquemas locales de SQLite, las tablas locales se regeneran limpiamente sin bloquear el flujo proveniente de Firestore.
+- `AppDatabase` cuenta con configuración `fallbackToDestructiveMigration()`. Para preservar la integridad de los datos locales sin destrucción en producción ante la adición de `numeroPersonas`, la base de datos se actualiza a la versión 6 mediante el script de migración explícito `MIGRATION_5_6`:
+  ```sql
+  ALTER TABLE inquilinos ADD COLUMN numeroPersonas INTEGER NOT NULL DEFAULT 1;
+  ```
+

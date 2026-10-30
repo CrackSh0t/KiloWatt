@@ -35,6 +35,8 @@ class ConfiguracionViewModelTest {
 
     private class FakeInquilinoRepository : IInquilinoRepository {
         var guardadoExitoso = false
+        var ultimoNumeroPersonasGuardado: Int? = null
+
         override fun obtenerInquilinosFlow(): Flow<List<Inquilino>> = flowOf(emptyList())
         override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> = flowOf(emptyList())
         override fun obtenerPerfilPropietarioFlow(): Flow<Map<String, Any>?> = flowOf(null)
@@ -44,12 +46,20 @@ class ConfiguracionViewModelTest {
             nombreEspacio: String,
             esAreaComun: Boolean,
             pagaAreaComun: Boolean,
+            numeroPersonas: Int,
         ): Pair<Boolean, String?> {
             guardadoExitoso = true
+            ultimoNumeroPersonasGuardado = numeroPersonas
             return Pair(true, null)
         }
 
-        override suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?> = Pair(true, null)
+        override suspend fun guardarPerfilPropietario(
+            nombre: String,
+            numero: String,
+            diaLimite: Int,
+            tipoProrrateoComun: String,
+        ): Pair<Boolean, String?> = Pair(true, null)
+
         override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
             onComplete(true, null)
         }
@@ -64,6 +74,7 @@ class ConfiguracionViewModelTest {
         override val diaLimitePago: Int = 5
         override val nombrePropietario: String = "Juan Pérez"
         override val numeroPago: String = "987654321"
+        override var tipoProrrateoComun: String = "EQUITY"
         override fun limpiarConfiguracion() {}
     }
 
@@ -102,6 +113,7 @@ class ConfiguracionViewModelTest {
             nombreEspacio = "Depa 202",
             esAreaComun = false,
             pagaAreaComun = true,
+            numeroPersonas = 3,
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -110,5 +122,27 @@ class ConfiguracionViewModelTest {
         assertTrue(!state.esError)
         assertEquals("¡Registrado en la nube con éxito!", state.mensajeNotificacion)
         assertTrue(repo.guardadoExitoso)
+        assertEquals(3, repo.ultimoNumeroPersonasGuardado)
+    }
+
+    @Test
+    fun guardarDatosInquilino_numeroPersonasInvalido0ONegativo_sanitizaAMinimoUno() = runTest {
+        val repo = FakeInquilinoRepository()
+        val settings = FakeSettingsManager()
+        val viewModel = ConfiguracionViewModel(repo, settings, testDispatcher)
+
+        viewModel.guardarDatosInquilino(
+            nombre = "Ana",
+            telefono = "987654321",
+            nombreEspacio = "Depa 101",
+            esAreaComun = false,
+            pagaAreaComun = true,
+            numeroPersonas = -2,
+        )
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(repo.guardadoExitoso)
+        assertEquals(1, repo.ultimoNumeroPersonasGuardado)
     }
 }

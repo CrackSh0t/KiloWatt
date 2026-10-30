@@ -4,6 +4,7 @@ import com.example.kilowatt.data.FacturaGeneral
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.data.TipoProrrateoComun
 import com.example.kilowatt.util.CobroCalculator
 import com.example.kilowatt.util.ValidacionLecturaResult
 import org.junit.Assert.assertEquals
@@ -231,5 +232,190 @@ class CobroCalculatorTest {
         )
 
         assertEquals("Mini Depa 302", resultado.detalles[0].nombreInquilino)
+    }
+
+    @Test
+    fun calcularResumenMensual_weightedPersons_prorrateoProporcionalCorrecto() {
+        // Factura: S/ 180.0 para 180.0 kWh (S/ 1.0 por kWh)
+        val factura = FacturaGeneral(
+            idFactura = "Diciembre 2026",
+            mesPeriodo = "Diciembre 2026",
+            montoTotalSoles = 180.0,
+            kwhTotalesRecibo = 180.0
+        )
+
+        // Inquilino A: 4 ocupantes, Inquilino B: 2 ocupantes
+        val inqA = Inquilino(idInquilino = "inqA", nombreCompleto = "Familia Gomez", numeroPersonas = 4)
+        val inqB = Inquilino(idInquilino = "inqB", nombreCompleto = "Carlos Ruiz", numeroPersonas = 2)
+
+        val subA = Submedidor(
+            idSubmedidor = "subA",
+            nombreEspacio = "Depa 201",
+            esAreaComun = false,
+            pagaAreaComun = true,
+            idInquilinoTitular = "inqA"
+        )
+        val subB = Submedidor(
+            idSubmedidor = "subB",
+            nombreEspacio = "Depa 202",
+            esAreaComun = false,
+            pagaAreaComun = true,
+            idInquilinoTitular = "inqB"
+        )
+        val subComun = Submedidor(
+            idSubmedidor = "subComun",
+            nombreEspacio = "Bomba y Pasillos",
+            esAreaComun = true,
+            pagaAreaComun = false,
+            idInquilinoTitular = null
+        )
+
+        // Consumos: Depa 201 = 60 kWh, Depa 202 = 60 kWh, Área común = 60 kWh -> Total 180 kWh
+        val lecturas = listOf(
+            Lectura(idLectura = "lA", idSubmedidor = "subA", consumoKwh = 60.0),
+            Lectura(idLectura = "lB", idSubmedidor = "subB", consumoKwh = 60.0),
+            Lectura(idLectura = "lC", idSubmedidor = "subComun", consumoKwh = 60.0)
+        )
+
+        val resultado = CobroCalculator.calcularResumenMensual(
+            mes = "Diciembre 2026",
+            factura = factura,
+            submedidores = listOf(subA, subB, subComun),
+            lecturas = lecturas,
+            inquilinos = listOf(inqA, inqB),
+            tipoProrrateoComun = TipoProrrateoComun.WEIGHTED_PERSONS
+        )
+
+        // Verificación de totales globales
+        assertEquals(180.0, resultado.montoTotalRecibo, 0.001)
+        assertEquals(180.0, resultado.sumaKwhSubmedidores, 0.001)
+        assertEquals(60.0, resultado.totalSolesAreaComun, 0.001)
+        // 60 S/ común / (4 + 2 personas) = 10.0 S/ por persona
+        assertEquals(10.0, resultado.cuotaAreaComunPorInquilino, 0.001)
+
+        val detalleA = resultado.detalles.find { it.idSubmedidor == "subA" }!!
+        val detalleB = resultado.detalles.find { it.idSubmedidor == "subB" }!!
+
+        // A (4 personas): Cuota común = 4 * 10 = 40 S/. Consumo propio = 60 S/. Total = 100 S/
+        assertEquals(40.0, detalleA.montoAreaComunSoles, 0.001)
+        assertEquals(100.0, detalleA.montoPagarSoles, 0.001)
+
+        // B (2 personas): Cuota común = 2 * 10 = 20 S/. Consumo propio = 60 S/. Total = 80 S/
+        assertEquals(20.0, detalleB.montoAreaComunSoles, 0.001)
+        assertEquals(80.0, detalleB.montoPagarSoles, 0.001)
+
+        // Principio de conservación: Total pagado por inquilinos = Monto total de la factura
+        assertEquals(180.0, detalleA.montoPagarSoles + detalleB.montoPagarSoles, 0.001)
+    }
+
+    @Test
+    fun calcularResumenMensual_weightedPersons_fallbackDefensivoConInquilinoNullOInvalido() {
+        val factura = FacturaGeneral(montoTotalSoles = 150.0, kwhTotalesRecibo = 150.0)
+
+        // Inquilino con personas = 0 o negativo (debe sanitizarse a 1)
+        val inqInvalido = Inquilino(idInquilino = "inq1", nombreCompleto = "Pedro", numeroPersonas = -2)
+        val inqValido = Inquilino(idInquilino = "inq3", nombreCompleto = "Ana", numeroPersonas = 3)
+
+        val sub1 = Submedidor(idSubmedidor = "sub1", nombreEspacio = "Hab 1", pagaAreaComun = true, idInquilinoTitular = "inq1")
+        val sub2 = Submedidor(idSubmedidor = "sub2", nombreEspacio = "Hab 2", pagaAreaComun = true, idInquilinoTitular = null) // Inquilino null -> fallback 1 persona
+        val sub3 = Submedidor(idSubmedidor = "sub3", nombreEspacio = "Hab 3", pagaAreaComun = true, idInquilinoTitular = "inq3")
+        val subComun = Submedidor(idSubmedidor = "subC", nombreEspacio = "Luz Común", esAreaComun = true, pagaAreaComun = false)
+
+        val lecturas = listOf(
+            Lectura(idLectura = "l1", idSubmedidor = "sub1", consumoKwh = 30.0),
+            Lectura(idLectura = "l2", idSubmedidor = "sub2", consumoKwh = 30.0),
+            Lectura(idLectura = "l3", idSubmedidor = "sub3", consumoKwh = 40.0),
+            Lectura(idLectura = "lC", idSubmedidor = "subC", consumoKwh = 50.0)
+        )
+
+        val resultado = CobroCalculator.calcularResumenMensual(
+            mes = "Enero 2027",
+            factura = factura,
+            submedidores = listOf(sub1, sub2, sub3, subComun),
+            lecturas = lecturas,
+            inquilinos = listOf(inqInvalido, inqValido),
+            tipoProrrateoComun = TipoProrrateoComun.WEIGHTED_PERSONS
+        )
+
+        // Personas esperadas: 1 (sanitizado de -2) + 1 (fallback de null) + 3 = 5 personas
+        // Área común = 50 S/. Costo por persona = 50 / 5 = 10.0 S/
+        assertEquals(50.0, resultado.totalSolesAreaComun, 0.001)
+        assertEquals(10.0, resultado.cuotaAreaComunPorInquilino, 0.001)
+
+        val d1 = resultado.detalles.find { it.idSubmedidor == "sub1" }!!
+        val d2 = resultado.detalles.find { it.idSubmedidor == "sub2" }!!
+        val d3 = resultado.detalles.find { it.idSubmedidor == "sub3" }!!
+
+        assertEquals(10.0, d1.montoAreaComunSoles, 0.001) // 1 persona * 10
+        assertEquals(10.0, d2.montoAreaComunSoles, 0.001) // 1 persona * 10
+        assertEquals(30.0, d3.montoAreaComunSoles, 0.001) // 3 personas * 10
+
+        // Suma de cobros particulares = 150.0
+        val sumaTotal = d1.montoPagarSoles + d2.montoPagarSoles + d3.montoPagarSoles
+        assertEquals(150.0, sumaTotal, 0.001)
+    }
+
+    @Test
+    fun calcularResumenMensual_equityExplicit_mantienePartesIgualesIndependienteDePersonas() {
+        val factura = FacturaGeneral(montoTotalSoles = 180.0, kwhTotalesRecibo = 180.0)
+
+        // Inquilino A tiene 4 personas e Inquilino B tiene 2 personas
+        val inqA = Inquilino(idInquilino = "inqA", nombreCompleto = "Familia Gomez", numeroPersonas = 4)
+        val inqB = Inquilino(idInquilino = "inqB", nombreCompleto = "Carlos Ruiz", numeroPersonas = 2)
+
+        val subA = Submedidor(idSubmedidor = "subA", nombreEspacio = "Depa 201", pagaAreaComun = true, idInquilinoTitular = "inqA")
+        val subB = Submedidor(idSubmedidor = "subB", nombreEspacio = "Depa 202", pagaAreaComun = true, idInquilinoTitular = "inqB")
+        val subComun = Submedidor(idSubmedidor = "subComun", nombreEspacio = "Común", esAreaComun = true, pagaAreaComun = false)
+
+        val lecturas = listOf(
+            Lectura(idLectura = "lA", idSubmedidor = "subA", consumoKwh = 60.0),
+            Lectura(idLectura = "lB", idSubmedidor = "subB", consumoKwh = 60.0),
+            Lectura(idLectura = "lC", idSubmedidor = "subComun", consumoKwh = 60.0)
+        )
+
+        val resultado = CobroCalculator.calcularResumenMensual(
+            mes = "Diciembre 2026",
+            factura = factura,
+            submedidores = listOf(subA, subB, subComun),
+            lecturas = lecturas,
+            inquilinos = listOf(inqA, inqB),
+            tipoProrrateoComun = TipoProrrateoComun.EQUITY
+        )
+
+        // En modalidad EQUITY, 60 S/ común se divide entre 2 pagadores = 30 S/ cada uno
+        assertEquals(30.0, resultado.cuotaAreaComunPorInquilino, 0.001)
+
+        val dA = resultado.detalles.find { it.idSubmedidor == "subA" }!!
+        val dB = resultado.detalles.find { it.idSubmedidor == "subB" }!!
+
+        assertEquals(30.0, dA.montoAreaComunSoles, 0.001)
+        assertEquals(30.0, dB.montoAreaComunSoles, 0.001)
+        assertEquals(90.0, dA.montoPagarSoles, 0.001)
+        assertEquals(90.0, dB.montoPagarSoles, 0.001)
+        assertEquals(180.0, dA.montoPagarSoles + dB.montoPagarSoles, 0.001)
+    }
+
+    @Test
+    fun calcularResumenMensual_weightedPersons_sinAreaComunOSinConsumo_noLanzaExcepcion() {
+        val factura = FacturaGeneral(montoTotalSoles = 100.0, kwhTotalesRecibo = 100.0)
+        val inq = Inquilino(idInquilino = "inq1", nombreCompleto = "Solo", numeroPersonas = 2)
+        val sub = Submedidor(idSubmedidor = "sub1", nombreEspacio = "Local", pagaAreaComun = true, idInquilinoTitular = "inq1")
+
+        // Sin submedidor de área común
+        val lecturas = listOf(Lectura(idLectura = "l1", idSubmedidor = "sub1", consumoKwh = 100.0))
+
+        val resultado = CobroCalculator.calcularResumenMensual(
+            mes = "Febrero 2027",
+            factura = factura,
+            submedidores = listOf(sub),
+            lecturas = lecturas,
+            inquilinos = listOf(inq),
+            tipoProrrateoComun = TipoProrrateoComun.WEIGHTED_PERSONS
+        )
+
+        assertEquals(0.0, resultado.totalSolesAreaComun, 0.001)
+        assertEquals(0.0, resultado.cuotaAreaComunPorInquilino, 0.001)
+        assertEquals(0.0, resultado.detalles[0].montoAreaComunSoles, 0.001)
+        assertEquals(100.0, resultado.detalles[0].montoPagarSoles, 0.001)
     }
 }

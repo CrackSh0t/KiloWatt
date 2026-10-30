@@ -81,10 +81,12 @@ class ConfiguracionViewModel @Inject constructor(
         nombreEspacio: String,
         esAreaComun: Boolean,
         pagaAreaComun: Boolean,
+        numeroPersonas: Int = 1,
     ) {
         val espacioLimpio = nombreEspacio.trim()
         val nombreLimpio = nombre.trim()
         val telLimpio = telefono.trim()
+        val personasSanitizadas = numeroPersonas.coerceAtLeast(1)
 
         if (espacioLimpio.isEmpty()) {
             _uiState.value = _uiState.value.copy(mensajeNotificacion = "Por favor ingresa el nombre del espacio", esError = true)
@@ -120,6 +122,7 @@ class ConfiguracionViewModel @Inject constructor(
                     nombreEspacio = espacioLimpio,
                     esAreaComun = esAreaComun,
                     pagaAreaComun = if (esAreaComun) false else pagaAreaComun,
+                    numeroPersonas = if (esAreaComun) 1 else personasSanitizadas,
                 )
 
                 if (exito) {
@@ -159,7 +162,13 @@ class ConfiguracionViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val (exito, error) = repository.guardarPerfilPropietario(nLimpio, numLimpio, dia)
+                val tipoProrrateo = settingsManager.tipoProrrateoComun
+                val (exito, error) = repository.guardarPerfilPropietario(
+                    nombre = nLimpio,
+                    numero = numLimpio,
+                    diaLimite = dia,
+                    tipoProrrateoComun = tipoProrrateo,
+                )
                 if (exito) {
                     _uiState.value = _uiState.value.copy(
                         estaGuardando = false,

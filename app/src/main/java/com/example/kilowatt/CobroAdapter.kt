@@ -36,6 +36,14 @@ class CobroAdapter(
         holder.binding.tvConsumoKwh.text = "%.1f kWh".format(item.consumoKwh)
         holder.binding.tvMontoPagarSoles.text = "S/ %.2f".format(item.montoPagarSoles)
 
+        if (item.montoAreaComunSoles > 0.0) {
+            holder.binding.tvCuotaComunDetalle.visibility = android.view.View.VISIBLE
+            val labelPers = if (item.numeroPersonas > 1) " (${item.numeroPersonas} pers.)" else ""
+            holder.binding.tvCuotaComunDetalle.text = "+ S/ %.2f área común%s".format(item.montoAreaComunSoles, labelPers)
+        } else {
+            holder.binding.tvCuotaComunDetalle.visibility = android.view.View.GONE
+        }
+
         // Estado: Renderizado dinámico del distintivo gráfico
         if (item.lecturaAnterior == 0.0 && item.lecturaActual == 0.0 && item.consumoKwh == 0.0) {
             holder.binding.tvEstadoPago.text = "Sin Lectura ⚠️"

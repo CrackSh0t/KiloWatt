@@ -19,6 +19,28 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/
 - **Sincronización del Entorno de Construcción:** Configuración optimizada de Gradle para compatibilidad total con Kotlin 2.x y KSP2.
 
 ### Añadido
+- **Visualización en Resumen de Cobros y Desglose en PDF (Fase 5 Iteración 4 - Cierre Fase 5):**
+  - Conexión de `tipoProrrateoComun` en `ResumenCobrosViewModel.kt` vía `combine` con `obtenerPerfilPropietarioFlow()`, recalculando automáticamente los cobros al cambiar de modalidad o cantidad de ocupantes.
+  - Inclusión de `numeroPersonas` en `DetalleCobro.kt` y `CobroCalculator.kt`.
+  - Desglose transparente en tarjetas de resumen (`item_cobro.xml` / `CobroAdapter.kt`), indicando la cuota de área común y el número de habitantes considerados.
+  - Personalización de etiquetas en comprobantes PDF (`PdfGenerator.kt`) y plantilla de mensajes de WhatsApp en `ResumenCobrosActivity.kt`.
+  - Extensión de `ResumenCobrosViewModelTest.kt` validando prorrateo ponderado con múltiples departamentos y personas. Total de pruebas unitarias incrementado a 46 (100% en verde).
+- **UI de Configuración y Gestión de Inquilinos con Factor de Ocupación (Fase 5 Iteración 3):**
+  - Campos numéricos `etNumeroPersonas` y `etEditNumeroPersonas` en `activity_configuracion.xml` y `dialog_editar_inquilino.xml` para la captura y edición del número de habitantes.
+  - Badge visual `tvPersonas` (ej. `👥 2 pers.`) en `item_inquilino.xml` e `InquilinoAdapter.kt`.
+  - Selector desplegable de Modalidad de Prorrateo de Área Común ("Por Departamento" `EQUITY` vs "Por Cantidad de Ocupantes" `WEIGHTED_PERSONS`) en `dialog_perfil_propietario.xml` y `MainActivity.kt` con sincronización en `SettingsManager` e `InquilinoRepository.guardarPerfilPropietario`.
+  - Validaciones defensivas `.coerceAtLeast(1)` en `ConfiguracionViewModel.kt` y `ConfiguracionActivity.kt`.
+  - Extensión de la suite de pruebas en `ConfiguracionViewModelTest.kt` verificando la captura y sanitización de ocupantes. Total de pruebas unitarias incrementado a 45 (100% en verde).
+- **Persistencia, Migración Room v6 y Sincronización Firestore (Fase 5 Iteración 2):**
+  - Implementación de la migración explícita `MIGRATION_5_6` (`ALTER TABLE inquilinos ADD COLUMN numeroPersonas INTEGER NOT NULL DEFAULT 1`) e incremento a versión 6 en [`AppDatabase.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AppDatabase.kt) y [`DatabaseModule.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/di/DatabaseModule.kt).
+  - Actualización de [`IInquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/IInquilinoRepository.kt) e [`InquilinoRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/InquilinoRepository.kt) para persistir `numeroPersonas` en SQLite y Firestore, con sanitización defensiva y fallback automático a 1 ocupante para documentos remotos históricos.
+  - Soporte de la preferencia `tipoProrrateoComun` ("EQUITY" | "WEIGHTED_PERSONS") en [`ISettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/ISettingsManager.kt) y [`SettingsManager.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/SettingsManager.kt) con respaldo en `usuarios/{uid}/perfil/datos_pago`.
+  - Creación de [`AppDatabaseMigrationTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/AppDatabaseMigrationTest.kt) validando la migración DDL y la integridad del modelo. Total de tests del proyecto incrementado a 44 (100% en verde).
+- **Dominio y Motor de Cálculo Ponderado de Área Común (Fase 5 Iteración 1):**
+  - Creación del enum de dominio [`TipoProrrateoComun.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/TipoProrrateoComun.kt) con valores `EQUITY` y `WEIGHTED_PERSONS`.
+  - Adición de la propiedad `val numeroPersonas: Int = 1` en el modelo y entidad [`Inquilino.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/Inquilino.kt).
+  - Implementación de la fórmula de prorrateo ponderado por ocupantes en [`CobroCalculator.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/util/CobroCalculator.kt) con sanitización defensiva (`coerceAtLeast(1)`) y protección contra divisiones por cero.
+  - Extensión de la suite [`CobroCalculatorTest.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/test/java/com/example/kilowatt/CobroCalculatorTest.kt) con 4 nuevos casos de prueba unitaria cubriendo cálculos ponderados proporcionales, retrocompatibilidad en modo equitativo, fallbacks defensivos y consistencia contable del 100%. Total de tests del proyecto incrementado a 41 (100% en verde).
 - **Estandarización de TopAppBar M3, Formularios OutlinedBox y Ajustes en MPAndroidChart (Fase 4 Iteración 2 y Cierre Fase 4):**
   - Implementación de `MaterialToolbar` unificada con botón de retorno `←` en `LecturasActivity`, `ResumenCobrosActivity` e `HistorialConsumoActivity`.
   - Homogeneización de todos los formularios de entrada en `activity_lecturas.xml` al estilo `TextInputLayout.OutlinedBox`.

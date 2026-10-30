@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class Inquilino(
     @PrimaryKey val idInquilino: String = "",
     val nombreCompleto: String = "",
-    val telefonoWhatsapp: String = ""
+    val telefonoWhatsapp: String = "",
+    val numeroPersonas: Int = 1
 )

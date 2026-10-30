@@ -51,11 +51,15 @@
     <string name="hint_nombre_titular">Nombre del Titular</string>
     <string name="hint_numero_pago">Número Yape/Plin</string>
     <string name="hint_dia_limite">Día Límite de Pago (ej. 5)</string>
+    <string name="hint_modalidad_prorrateo">Modalidad Prorrateo Área Común</string>
+    <string name="option_prorrateo_equity">Por Departamento (Partes Iguales)</string>
+    <string name="option_prorrateo_weighted">Por Cantidad de Ocupantes</string>
     <string name="btn_guardar_propietario">Guardar Datos Propietario</string>
     <string name="title_registrar_inquilino">Registrar Nuevo Inquilino</string>
     <string name="hint_nombre_completo">Nombre completo (ej. Juan Pérez)</string>
     <string name="hint_whatsapp">WhatsApp (ej. 987654321)</string>
     <string name="hint_espacio">Espacio asignado (ej. Depa 101 / Cuarto 2)</string>
+    <string name="hint_numero_personas">Cantidad de Ocupantes / Personas</string>
     <string name="chk_es_area_comun">¿Es un Submedidor de Área Común?\n(Baños, pasadizo, bomba de agua)</string>
     <string name="chk_paga_area_comun">¿Este espacio paga cuota de área común?</string>
     <string name="btn_guardar_inquilino">Guardar Inquilino y Medidor</string>

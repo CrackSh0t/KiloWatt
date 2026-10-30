@@ -15,5 +15,6 @@ data class DetalleCobro(
     val montoPagarSoles: Double,
     val estadoPago: String = "PENDIENTE",
     val fechaPago: Long? = null,
-    val metodoPago: String? = null
+    val metodoPago: String? = null,
+    val numeroPersonas: Int = 1,
 )

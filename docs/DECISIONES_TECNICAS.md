@@ -98,3 +98,16 @@ Almacenar los parámetros operativos del arrendador (nombre, número de pago y d
 ### Motivos
 1. **Acceso síncrono ultra-rápido:** Evita retardos en la carga de vistas o en la generación dinámica de comprobantes PDF al no requerir llamadas asíncronas para leer un número telefónico o nombre de cobro.
 2. **Respaldo en la nube:** Garantiza que si el usuario cambia de dispositivo móvil, sus datos de contacto y cobro se recuperen al iniciar sesión con su cuenta.
+
+---
+
+## 9. Prorrateo Ponderado de Áreas Comunes por Factor de Ocupación
+
+### Decisión
+Evolucionar el motor de cálculo de `CobroCalculator` para soportar dos modalidades de prorrateo de áreas comunes (`EQUITY` vs `WEIGHTED_PERSONS`) mediante el parámetro `tipoProrrateoComun` y la adición del atributo `numeroPersonas: Int = 1` en la entidad `Inquilino`.
+
+### Motivos
+1. **Justicia distributiva en inmuebles multifamiliares:** En edificaciones con consumos compartidos intensivos (bomba de agua, iluminación comunitaria, lavandería), la división equitativa perjudica a inquilinos solitarios. La ponderación por número de habitantes refleja el costo real de uso sin quebrar la exactitud de la conservación financiera (suma de cuotas igual al costo total del área común).
+2. **Retrocompatibilidad absoluta y fallback defensivo:** La modalidad por defecto (`EQUITY`) y el valor por defecto (`numeroPersonas = 1`) garantizan que los datos históricos y las cuentas existentes funcionen idénticamente sin requerir migraciones forzadas de datos.
+3. **Migración explícita en Room (`MIGRATION_5_6`):** Para evitar la pérdida de caché local y asegurar la transición suave en dispositivos de producción, se implementa una migración DDL (`ALTER TABLE inquilinos ADD COLUMN numeroPersonas INTEGER NOT NULL DEFAULT 1`) incrementando la versión de la base de datos a 6.
+

@@ -58,6 +58,7 @@ class InquilinoRepository @Inject constructor(
         nombreEspacio: String,
         esAreaComun: Boolean,
         pagaAreaComun: Boolean,
+        numeroPersonas: Int,
     ): Pair<Boolean, String?> {
         val inqRef = inquilinosRef
         val subRef = submedidoresRef
@@ -76,6 +77,7 @@ class InquilinoRepository @Inject constructor(
             idInquilino = idInquilinoReal,
             nombreCompleto = nombreCompleto,
             telefonoWhatsapp = telefono,
+            numeroPersonas = numeroPersonas.coerceAtLeast(1),
         )
 
         try {
@@ -136,11 +138,14 @@ class InquilinoRepository @Inject constructor(
         submedidor: Submedidor,
         onComplete: (Boolean, String?) -> Unit,
     ) {
+        val inquilinoSanitizado = inquilino?.copy(
+            numeroPersonas = inquilino.numeroPersonas.coerceAtLeast(1)
+        )
         scope.launch {
             try {
                 submedidorDao.insertarSubmedidor(submedidor)
-                if (inquilino != null) {
-                    inquilinoDao.insertarInquilino(inquilino)
+                if (inquilinoSanitizado != null) {
+                    inquilinoDao.insertarInquilino(inquilinoSanitizado)
                 }
             } catch (_: Exception) {}
         }
@@ -156,8 +161,8 @@ class InquilinoRepository @Inject constructor(
 
             val batch = db.batch()
             batch.set(subRef.document(submedidor.idSubmedidor), submedidor)
-            if (inquilino != null && inqRef != null && inquilino.idInquilino.isNotEmpty()) {
-                batch.set(inqRef.document(inquilino.idInquilino), inquilino)
+            if (inquilinoSanitizado != null && inqRef != null && inquilinoSanitizado.idInquilino.isNotEmpty()) {
+                batch.set(inqRef.document(inquilinoSanitizado.idInquilino), inquilinoSanitizado)
             }
 
             batch.commit()
@@ -207,7 +212,12 @@ class InquilinoRepository @Inject constructor(
     }
 
     // Guardar perfil del propietario en Firestore (Suspend)
-    override suspend fun guardarPerfilPropietario(nombre: String, numero: String, diaLimite: Int): Pair<Boolean, String?> =
+    override suspend fun guardarPerfilPropietario(
+        nombre: String,
+        numero: String,
+        diaLimite: Int,
+        tipoProrrateoComun: String,
+    ): Pair<Boolean, String?> =
         suspendCancellableCoroutine { continuation ->
             try {
                 val pRef = perfilRef
@@ -220,6 +230,7 @@ class InquilinoRepository @Inject constructor(
                     "nombrePropietario" to nombre,
                     "numeroPago" to numero,
                     "diaLimitePago" to diaLimite,
+                    "tipoProrrateoComun" to tipoProrrateoComun,
                 )
                 pRef.document("datos_pago")
                     .set(perfil)
@@ -288,7 +299,9 @@ class InquilinoRepository @Inject constructor(
         inquilinosListener = inqRef.addSnapshotListener { snapshot, error ->
             if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
             if (error == null && snapshot != null) {
-                val lista = snapshot.toObjects<Inquilino>()
+                val lista = snapshot.toObjects<Inquilino>().map { inq ->
+                    inq.copy(numeroPersonas = inq.numeroPersonas.coerceAtLeast(1))
+                }
                 scope.launch {
                     for (inq in lista) {
                         try {

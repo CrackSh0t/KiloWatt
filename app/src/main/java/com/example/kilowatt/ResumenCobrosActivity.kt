@@ -200,7 +200,8 @@ class ResumenCobrosActivity : AppCompatActivity() {
 
     private fun enviarMensajeWhatsapp(cobro: DetalleCobro) {
         val detalleAreaComun = if (cobro.montoAreaComunSoles > 0) {
-            "\n🏢 *Cuota Área Común:* S/ ${"%.2f".format(cobro.montoAreaComunSoles)}"
+            val persTxt = if (cobro.numeroPersonas > 1) " (${cobro.numeroPersonas} pers.)" else ""
+            "\n🏢 *Cuota Área Común$persTxt:* S/ ${"%.2f".format(cobro.montoAreaComunSoles)}"
         } else ""
 
         val mensaje = """
