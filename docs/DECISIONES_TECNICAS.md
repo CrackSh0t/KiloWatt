@@ -50,7 +50,7 @@ Mantener la definición completa de base de datos local con **Room** (`AppDataba
 ### Motivos
 1. **Evolución arquitectónica hacia Offline-First:** Dejar preparados los DAOs (`InquilinoDao`, `SubmedidorDao`, `FacturaGeneralDao`, `LecturaDao`) y modelos de entidades locales permite integrar en fases futuras un patrón de sincronización bidireccional local-remoto (Single Source of Truth en Room respaldado por Firestore vía workers de WorkManager o NetworkBoundResource).
 2. **Definición formal del esquema relacional:** El modelo de Room sirvió para tipar rigurosamente los campos, índices únicos y restricciones relacionales antes de la persistencia semi-estructurada en NoSQL.
-3. **Resiliencia de migración:** La presencia de `fallbackToDestructiveMigration()` en `AppDatabase` evita inconsistencias si se decide activar la persistencia local en SQLite sin alterar la fuente remota de Firestore.
+3. **Resiliencia de migración:** `AppDatabase` usa migraciones explícitas y no aplica fallback destructivo, para evitar que un cambio de versión borre la outbox o los datos locales.
 
 ---
 
@@ -110,4 +110,3 @@ Evolucionar el motor de cálculo de `CobroCalculator` para soportar dos modalida
 1. **Justicia distributiva en inmuebles multifamiliares:** En edificaciones con consumos compartidos intensivos (bomba de agua, iluminación comunitaria, lavandería), la división equitativa perjudica a inquilinos solitarios. La ponderación por número de habitantes refleja el costo real de uso sin quebrar la exactitud de la conservación financiera (suma de cuotas igual al costo total del área común).
 2. **Retrocompatibilidad absoluta y fallback defensivo:** La modalidad por defecto (`EQUITY`) y el valor por defecto (`numeroPersonas = 1`) garantizan que los datos históricos y las cuentas existentes funcionen idénticamente sin requerir migraciones forzadas de datos.
 3. **Migración explícita en Room (`MIGRATION_5_6`):** Para evitar la pérdida de caché local y asegurar la transición suave en dispositivos de producción, se implementa una migración DDL (`ALTER TABLE inquilinos ADD COLUMN numeroPersonas INTEGER NOT NULL DEFAULT 1`) incrementando la versión de la base de datos a 6.
-

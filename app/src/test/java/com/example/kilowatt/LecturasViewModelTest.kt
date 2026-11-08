@@ -6,9 +6,11 @@ import com.example.kilowatt.data.ILecturaRepository
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.domain.OperationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -39,6 +41,8 @@ class LecturasViewModelTest {
     private class FakeLecturaRepository(
         private val facturas: List<FacturaGeneral> = emptyList(),
         private val lecturas: List<Lectura> = emptyList(),
+        private val resultadoFactura: OperationResult<Unit> = OperationResult.Synced(Unit),
+        private val resultadoLectura: OperationResult<Unit> = OperationResult.Synced(Unit),
     ) : ILecturaRepository {
         var lecturaGuardada: Lectura? = null
         var facturaGuardada: FacturaGeneral? = null
@@ -46,14 +50,14 @@ class LecturasViewModelTest {
         override fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> = flowOf(facturas)
         override fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> = flowOf(lecturas)
         override fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> = flowOf(lecturas)
-        override suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> {
+        override suspend fun guardarFactura(factura: FacturaGeneral): OperationResult<Unit> {
             facturaGuardada = factura
-            return Pair(true, null)
+            return resultadoFactura
         }
 
-        override suspend fun guardarLectura(lectura: Lectura): Pair<Boolean, String?> {
+        override suspend fun guardarLectura(lectura: Lectura): OperationResult<Unit> {
             lecturaGuardada = lectura
-            return Pair(true, null)
+            return resultadoLectura
         }
 
         override suspend fun actualizarEstadoPago(
@@ -61,7 +65,7 @@ class LecturasViewModelTest {
             nuevoEstado: String,
             fechaPago: Long?,
             metodoPago: String?,
-        ): Pair<Boolean, String?> = Pair(true, null)
+        ): OperationResult<Unit> = OperationResult.Synced(Unit)
 
         override fun cancelarListeners() {}
     }
@@ -69,9 +73,12 @@ class LecturasViewModelTest {
     private class FakeInquilinoRepository(
         private val submedidores: List<Submedidor> = emptyList(),
         private val inquilinos: List<Inquilino> = emptyList(),
+        private val errorSubmedidores: Throwable? = null,
     ) : IInquilinoRepository {
         override fun obtenerInquilinosFlow(): Flow<List<Inquilino>> = flowOf(inquilinos)
-        override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> = flowOf(submedidores)
+        override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> = errorSubmedidores?.let { error ->
+            flow { throw error }
+        } ?: flowOf(submedidores)
         override fun obtenerPerfilPropietarioFlow(): Flow<Map<String, Any>?> = flowOf(null)
         override suspend fun guardarInquilinoYSubmedidor(
             nombreCompleto: String,
@@ -80,20 +87,20 @@ class LecturasViewModelTest {
             esAreaComun: Boolean,
             pagaAreaComun: Boolean,
             numeroPersonas: Int,
-        ): Pair<Boolean, String?> = Pair(true, null)
+        ): OperationResult<Unit> = OperationResult.Synced(Unit)
 
         override suspend fun guardarPerfilPropietario(
             nombre: String,
             numero: String,
             diaLimite: Int,
             tipoProrrateoComun: String,
-        ): Pair<Boolean, String?> = Pair(true, null)
-        override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
-            onComplete(true, null)
+        ): OperationResult<Unit> = OperationResult.Synced(Unit)
+        override suspend fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor): OperationResult<Unit> {
+            return OperationResult.Synced(Unit)
         }
 
-        override fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
-            onComplete(true, null)
+        override suspend fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor): OperationResult<Unit> {
+            return OperationResult.Synced(Unit)
         }
 
         override fun cancelarListeners() {}
@@ -163,5 +170,86 @@ class LecturasViewModelTest {
         assertTrue(!estado.esError)
         assertNotNull(fakeLecturaRepo.lecturaGuardada)
         assertEquals(50.0, fakeLecturaRepo.lecturaGuardada?.consumoKwh ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun guardarFactura_guardadoLocalPendiente_muestraEstadoNoError() = runTest {
+        val repo = FakeLecturaRepository(
+            resultadoFactura = OperationResult.PendingSync(Unit, "Sin conexión"),
+        )
+        val viewModel = LecturasViewModel(repo, FakeInquilinoRepository(), testDispatcher)
+
+        viewModel.guardarFacturaGeneral("Agosto 2026", "100", "50")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(!viewModel.uiState.value.esError)
+        assertEquals("Sin conexión", viewModel.uiState.value.mensajeNotificacion)
+    }
+
+    @Test
+    fun guardarFactura_falloNoRecuperable_muestraError() = runTest {
+        val exception = IllegalStateException("Room corrupto")
+        val repo = FakeLecturaRepository(
+            resultadoFactura = OperationResult.Failed(exception, "No se pudo guardar localmente"),
+        )
+        val viewModel = LecturasViewModel(repo, FakeInquilinoRepository(), testDispatcher)
+
+        viewModel.guardarFacturaGeneral("Agosto 2026", "100", "50")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.esError)
+        assertEquals("Error al guardar recibo: No se pudo guardar localmente", viewModel.uiState.value.mensajeNotificacion)
+    }
+
+    @Test
+    fun guardarLectura_pendienteSync_muestraEstadoNoError() = runTest {
+        val repo = FakeLecturaRepository(
+            facturas = listOf(FacturaGeneral("f1", "Agosto 2026", 100.0, 100.0)),
+            resultadoLectura = OperationResult.PendingSync(Unit, "Sin conexión"),
+        )
+        val submedidor = Submedidor("sub1", "Depa 101")
+        val viewModel = LecturasViewModel(repo, FakeInquilinoRepository(listOf(submedidor)), testDispatcher)
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.calcularYGuardarLectura("Agosto 2026", "100", "150", submedidor)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(!viewModel.uiState.value.esError)
+        assertEquals("Sin conexión", viewModel.uiState.value.mensajeNotificacion)
+    }
+
+    @Test
+    fun guardarLectura_falloRoom_muestraError() = runTest {
+        val exception = IllegalStateException("Room no disponible")
+        val repo = FakeLecturaRepository(
+            facturas = listOf(FacturaGeneral("f1", "Agosto 2026", 100.0, 100.0)),
+            resultadoLectura = OperationResult.Failed(exception, "No se pudo guardar localmente"),
+        )
+        val submedidor = Submedidor("sub1", "Depa 101")
+        val viewModel = LecturasViewModel(repo, FakeInquilinoRepository(listOf(submedidor)), testDispatcher)
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.calcularYGuardarLectura("Agosto 2026", "100", "150", submedidor)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.esError)
+        assertEquals("Error al guardar lectura: No se pudo guardar localmente", viewModel.uiState.value.mensajeNotificacion)
+    }
+
+    @Test
+    fun errorDeRoomEnFlowDeSubmedidores_seExponeEnUiState() = runTest {
+        val viewModel = LecturasViewModel(
+            FakeLecturaRepository(),
+            FakeInquilinoRepository(errorSubmedidores = IllegalStateException("Room no disponible")),
+            testDispatcher,
+        )
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.esError)
+        assertEquals(
+            "Error al cargar medidores: Room no disponible",
+            viewModel.uiState.value.mensajeNotificacion,
+        )
     }
 }

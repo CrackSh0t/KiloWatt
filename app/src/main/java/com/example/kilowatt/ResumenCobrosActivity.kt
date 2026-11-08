@@ -109,6 +109,11 @@ class ResumenCobrosActivity : AppCompatActivity() {
 
         adapter.actualizarLista(state.detalles)
 
+        state.mensajeError?.let { mensaje ->
+            Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show()
+            viewModel.consumirError()
+        }
+
         // Actualizar Spinner de meses si cambió la lista
         if (state.listaMesesDisponibles != listaMesesDisponibles) {
             isSpinnerInitializing = true

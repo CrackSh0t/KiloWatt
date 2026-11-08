@@ -20,6 +20,7 @@ Guía concisa y de alto nivel con el resumen operativo, arquitectónico y normat
 * **Persistencia Local:** `SharedPreferences` (`SettingsManager`) y Room (`AppDatabase`, `Entity`, `Dao`).
 * **Concurrencia & Asincronía:** Kotlin Coroutines (`Dispatchers.IO`, `Dispatchers.Main`, `lifecycleScope`) y Kotlin Flows (`callbackFlow`, `combine`).
 * **Generación de Documentos:** Android nativo `PdfDocument`.
+* **Contrato de operaciones:** `OperationResult<T>` distingue `Synced`, `PendingSync` y `Failed`; si Room falla, la operación termina en `Failed` sin intentar Firestore y los errores de Flow se muestran mediante estados de UI explícitos.
 
 ---
 
@@ -56,10 +57,9 @@ Patrón por capas centrado en Android y Firebase:
 ---
 
 ## 5. Deuda Técnica y Limitaciones
-* **Ausencia de MVVM:** Lógica de negocio, orquestación y corrutinas alojadas directamente en las `Activity`.
-* **Inyección de Dependencias Manual:** Repositorios y managers se instancian a mano (`new Repository()`).
-* **Desacople de Room:** Entidades y DAOs de Room existen en `AppDatabase`, pero los repositorios activos interactúan directamente con Firestore sin sincronización bidireccional.
-* **Acoplamiento en Adapters:** `CobroAdapter` ejecuta generación de archivos PDF y dispatching de intents de Android.
+* **DT-06 subsanado:** Las escrituras y eliminaciones de repositorio usan `OperationResult<T>`; un fallo de Room aborta antes de Firestore, los Flows no sustituyen errores por listas vacías y las pantallas muestran el error. `PendingSync` todavía es temporal y puede perderse al cerrar la aplicación hasta implementar la outbox persistente de DT-07.
+* **PendingSync no durable:** Falta la outbox persistente y el reintento con WorkManager de DT-07.
+* **Reconciliación remota pendiente:** Las bajas remotas y la política completa de conflictos Room–Firestore siguen en deuda técnica.
 
 ---
 
@@ -88,6 +88,6 @@ Patrón por capas centrado en Android y Firebase:
 ---
 
 ## 8. Prioridades Actuales
-1. Implementar la capa `ViewModel` (`ResumenCobrosViewModel`, `LecturasViewModel`, etc.) desacoplando lógica de las Activities.
-2. Establecer inyección de dependencias.
-3. Conectar persistencia local (Room) con Firestore para soporte offline robusto.
+1. Implementar outbox persistente y reintentos WorkManager para hacer durable `PendingSync` (DT-07).
+2. Completar reconciliación de altas, modificaciones y bajas remotas (DT-08).
+3. Mantener la suite `./gradlew :app:testDebugUnitTest` en verde ante cada cambio de dominio, repositorio o ViewModel.

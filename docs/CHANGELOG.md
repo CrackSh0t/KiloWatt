@@ -8,6 +8,10 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/
 
 ## [Sin Publicar]
 
+### Añadido
+- **DT-06 — Contrato de resultados y observabilidad:** creación de `OperationResult<T>` con estados `Synced`, `PendingSync` y `Failed`; repositorios y ViewModels actualizados para distinguir sincronización, persistencia local pendiente y fallos. Los `Flow` de Room propagan errores en lugar de emitir listas vacías.
+- **Hook de pruebas unitarias:** `.github/hooks/run-unit-tests.json` ejecuta `./gradlew :app:testDebugUnitTest` después de cada uso de herramienta.
+
 ### Arreglado
 - **Fix Síncrono de Cierre de Sesión (Prevensión de Crash en Logout):** Conversión de `cerrarSesion()` a función suspendida `suspend fun cerrarSesion() = withContext(Dispatchers.IO)` en [`IAuthRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/IAuthRepository.kt) y [`AuthRepository.kt`](file:///home/fernando/StudioProjects/KiloWatt/app/src/main/java/com/example/kilowatt/data/AuthRepository.kt). Inyección obligatoria de Hilt para `ILecturaRepository` e `IInquilinoRepository`, asegurando el desenganche síncrono de listeners en tiempo real antes de ejecutar `database.clearAllTables()`, `settingsManager.limpiarConfiguracion()` y `auth.signOut()`.
 - **Fix de Estabilidad en Logout/Login y Duplicación Temporal de Inquilinos:**

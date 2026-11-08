@@ -7,6 +7,7 @@ import com.example.kilowatt.data.IInquilinoRepository
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.InquilinoConMedidor
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.domain.OperationResult
 import com.example.kilowatt.util.ISettingsManager
 import com.example.kilowatt.util.PhoneUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -50,15 +52,29 @@ class ConfiguracionViewModel @Inject constructor(
                     val inq = if (sub.esAreaComun) null else inquilinos.find { it.idInquilino == sub.idInquilinoTitular }
                     InquilinoConMedidor(inquilino = inq, submedidor = sub)
                 }
-            }.collect { lista ->
-                _uiState.value = _uiState.value.copy(listaInquilinos = lista)
             }
+                .catch { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        mensajeNotificacion = "Error al cargar inquilinos y medidores: ${exception.localizedMessage}",
+                        esError = true,
+                    )
+                }
+                .collect { lista ->
+                    _uiState.value = _uiState.value.copy(listaInquilinos = lista)
+                }
         }
     }
 
     private fun observarPerfilPropietario() {
         viewModelScope.launch {
-            repository.obtenerPerfilPropietarioFlow().collect { datos ->
+            repository.obtenerPerfilPropietarioFlow()
+                .catch { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        mensajeNotificacion = "Error al cargar el perfil: ${exception.localizedMessage}",
+                        esError = true,
+                    )
+                }
+                .collect { datos ->
                 if (datos != null) {
                     val nombre = datos["nombrePropietario"]?.toString() ?: ""
                     val numero = datos["numeroPago"]?.toString() ?: ""
@@ -70,7 +86,7 @@ class ConfiguracionViewModel @Inject constructor(
                         numeroPago = numero.ifEmpty { _uiState.value.numeroPago },
                         diaLimitePago = diaLimite,
                     )
-                }
+                    }
             }
         }
     }
@@ -116,7 +132,7 @@ class ConfiguracionViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val (exito, error) = repository.guardarInquilinoYSubmedidor(
+                val resultado = repository.guardarInquilinoYSubmedidor(
                     nombreCompleto = if (esAreaComun) "Área Común" else nombreLimpio,
                     telefono = telefonoNormalizado,
                     nombreEspacio = espacioLimpio,
@@ -125,16 +141,20 @@ class ConfiguracionViewModel @Inject constructor(
                     numeroPersonas = if (esAreaComun) 1 else personasSanitizadas,
                 )
 
-                if (exito) {
-                    _uiState.value = _uiState.value.copy(
+                when (resultado) {
+                    is OperationResult.Synced -> _uiState.value = _uiState.value.copy(
                         estaGuardando = false,
                         mensajeNotificacion = "¡Registrado en la nube con éxito!",
                         esError = false,
                     )
-                } else {
-                    _uiState.value = _uiState.value.copy(
+                    is OperationResult.PendingSync -> _uiState.value = _uiState.value.copy(
                         estaGuardando = false,
-                        mensajeNotificacion = "Error al guardar en Firestore: $error",
+                        mensajeNotificacion = resultado.reason ?: "Guardado localmente; pendiente de sincronización",
+                        esError = false,
+                    )
+                    is OperationResult.Failed -> _uiState.value = _uiState.value.copy(
+                        estaGuardando = false,
+                        mensajeNotificacion = "Error al guardar: ${resultado.message}",
                         esError = true,
                     )
                 }
@@ -163,14 +183,14 @@ class ConfiguracionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val tipoProrrateo = settingsManager.tipoProrrateoComun
-                val (exito, error) = repository.guardarPerfilPropietario(
+                val resultado = repository.guardarPerfilPropietario(
                     nombre = nLimpio,
                     numero = numLimpio,
                     diaLimite = dia,
                     tipoProrrateoComun = tipoProrrateo,
                 )
-                if (exito) {
-                    _uiState.value = _uiState.value.copy(
+                when (resultado) {
+                    is OperationResult.Synced -> _uiState.value = _uiState.value.copy(
                         estaGuardando = false,
                         nombrePropietario = nLimpio,
                         numeroPago = numLimpio,
@@ -178,10 +198,14 @@ class ConfiguracionViewModel @Inject constructor(
                         mensajeNotificacion = "Datos del propietario guardados con éxito",
                         esError = false,
                     )
-                } else {
-                    _uiState.value = _uiState.value.copy(
+                    is OperationResult.PendingSync -> _uiState.value = _uiState.value.copy(
                         estaGuardando = false,
-                        mensajeNotificacion = "Guardado localmente. Error en nube: $error",
+                        mensajeNotificacion = resultado.reason ?: "Perfil guardado localmente; pendiente de sincronización",
+                        esError = false,
+                    )
+                    is OperationResult.Failed -> _uiState.value = _uiState.value.copy(
+                        estaGuardando = false,
+                        mensajeNotificacion = "Error al guardar perfil: ${resultado.message}",
                         esError = true,
                     )
                 }
@@ -196,11 +220,23 @@ class ConfiguracionViewModel @Inject constructor(
     }
 
     fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onResult: (Boolean, String?) -> Unit) {
-        repository.actualizarInquilinoYSubmedidor(inquilino, submedidor, onResult)
+        viewModelScope.launch {
+            when (val resultado = repository.actualizarInquilinoYSubmedidor(inquilino, submedidor)) {
+                is OperationResult.Synced -> onResult(true, null)
+                is OperationResult.PendingSync -> onResult(true, resultado.reason)
+                is OperationResult.Failed -> onResult(false, resultado.message)
+            }
+        }
     }
 
     fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onResult: (Boolean, String?) -> Unit) {
-        repository.eliminarInquilinoYSubmedidor(inquilino, submedidor, onResult)
+        viewModelScope.launch {
+            when (val resultado = repository.eliminarInquilinoYSubmedidor(inquilino, submedidor)) {
+                is OperationResult.Synced -> onResult(true, null)
+                is OperationResult.PendingSync -> onResult(true, resultado.reason)
+                is OperationResult.Failed -> onResult(false, resultado.message)
+            }
+        }
     }
 
     fun consumirNotificacion() {

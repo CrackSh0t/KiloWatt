@@ -3,6 +3,7 @@ package com.example.kilowatt
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.MIGRATION_5_6
+import com.example.kilowatt.data.MIGRATION_6_7
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,6 +15,27 @@ class AppDatabaseMigrationTest {
     fun migration5to6_versionesCorrectas() {
         assertEquals(5, MIGRATION_5_6.startVersion)
         assertEquals(6, MIGRATION_5_6.endVersion)
+    }
+
+    @Test
+    fun migration6to7_creaTablaOutboxEIndice() {
+        assertEquals(6, MIGRATION_6_7.startVersion)
+        assertEquals(7, MIGRATION_6_7.endVersion)
+        val sentenciasEjecutadas = mutableListOf<String>()
+        val fakeDb = Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java),
+        ) { _, method, args ->
+            if (method.name == "execSQL" && args != null && args.isNotEmpty()) {
+                sentenciasEjecutadas.add(args[0] as String)
+            }
+            null
+        } as SupportSQLiteDatabase
+
+        MIGRATION_6_7.migrate(fakeDb)
+
+        assertTrue(sentenciasEjecutadas.any { it.contains("CREATE TABLE IF NOT EXISTS pending_operations") })
+        assertTrue(sentenciasEjecutadas.any { it.contains("index_pending_operations_uid_status") })
     }
 
     @Test

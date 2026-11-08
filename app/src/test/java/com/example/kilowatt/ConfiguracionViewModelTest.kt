@@ -3,6 +3,7 @@ package com.example.kilowatt
 import com.example.kilowatt.data.IInquilinoRepository
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.domain.OperationResult
 import com.example.kilowatt.util.ISettingsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,10 +48,10 @@ class ConfiguracionViewModelTest {
             esAreaComun: Boolean,
             pagaAreaComun: Boolean,
             numeroPersonas: Int,
-        ): Pair<Boolean, String?> {
+        ): OperationResult<Unit> {
             guardadoExitoso = true
             ultimoNumeroPersonasGuardado = numeroPersonas
-            return Pair(true, null)
+            return OperationResult.Synced(Unit)
         }
 
         override suspend fun guardarPerfilPropietario(
@@ -58,14 +59,14 @@ class ConfiguracionViewModelTest {
             numero: String,
             diaLimite: Int,
             tipoProrrateoComun: String,
-        ): Pair<Boolean, String?> = Pair(true, null)
+        ): OperationResult<Unit> = OperationResult.Synced(Unit)
 
-        override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
-            onComplete(true, null)
+        override suspend fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor): OperationResult<Unit> {
+            return OperationResult.Synced(Unit)
         }
 
-        override fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
-            onComplete(true, null)
+        override suspend fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor): OperationResult<Unit> {
+            return OperationResult.Synced(Unit)
         }
         override fun cancelarListeners() {}
     }

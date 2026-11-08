@@ -19,4 +19,7 @@ interface LecturaDao {
 
     @Query("UPDATE lecturas SET estadoPago = :estadoPago, fechaPago = :fechaPago, metodoPago = :metodoPago WHERE idLectura = :idLectura")
     suspend fun actualizarEstadoPago(idLectura: String, estadoPago: String, fechaPago: Long?, metodoPago: String?)
+
+    @Query("DELETE FROM lecturas WHERE idLectura = :idLectura")
+    suspend fun eliminarPorId(idLectura: String)
 }

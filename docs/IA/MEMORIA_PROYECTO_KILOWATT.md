@@ -2,6 +2,14 @@
 
 Este documento registra los hitos, decisiones y resúmenes de implementación clave en la evolución del proyecto **Kilowatt**. Servirá como registro histórico y punto de referencia para desarrolladores e inteligencias artificiales que intervengan en el sistema.
 
+## Resumen de la implementación: DT-06 — Contrato de errores y observabilidad
+
+Se incorporó `OperationResult<T>` en `app/src/main/java/com/example/kilowatt/domain/OperationResult.kt` con los estados `Synced`, `PendingSync` y `Failed`. `IInquilinoRepository` e `ILecturaRepository` usan este contrato en sus operaciones suspendidas, y los ViewModels traducen los fallos de Room y los resultados pendientes a mensajes de UI explícitos.
+
+Las rutas de actualización y eliminación de inquilinos abortan antes de llegar a Firestore si la escritura local falla y notifican el resultado fallido. Los logs de sincronización incluyen entidad, operación e identificador lógico sin registrar secretos. Se añadieron pruebas para guardado pendiente, fallo no recuperable y errores de Room propagados desde un `Flow`.
+
+**Limitación conocida:** `PendingSync` comunica el estado local pendiente, pero todavía no existe una outbox persistente ni reintentos garantizados. Esa capacidad queda asignada a DT-07.
+
 ---
 
 ## Resumen de la Implementación: Recuperación de Contraseña por Correo Electrónico
@@ -733,4 +741,11 @@ Se completó la Fase 5 conectando la preferencia global `tipoProrrateoComun` con
 - **Pruebas Unitarias:** Ejecución de `:app:testDebugUnitTest` con **46 pruebas pasadas, 0 falladas, 0 omitidas** (100% en verde).
 
 
+# Memoria técnica — subsanación DT-06 (noviembre 2026)
 
+- `OperationResult<T>` es el contrato obligatorio para persistencia: `Synced`, `PendingSync` y `Failed`.
+- `InquilinoRepository` y `LecturaRepository` persisten primero en Room; cualquier excepción local devuelve `Failed` y no ejecuta Firestore.
+- Los ViewModels usan `catch` en los Flows y publican errores visibles; `ResumenCobrosActivity` muestra `mensajeError`.
+- Las actualizaciones y eliminaciones de inquilinos son funciones `suspend` tipadas, no callbacks booleanos.
+- Los logs de sincronización incluyen entidad, operación, identificador lógico y UID, sin credenciales ni datos de pago.
+- `PendingSync` comunica fallo remoto, pero no es durable hasta implementar la outbox de DT-07.

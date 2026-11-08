@@ -3,6 +3,7 @@ package com.example.kilowatt.data
 import com.example.kilowatt.util.ISettingsManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -41,22 +42,41 @@ class AuthRepository @Inject constructor(
             }
     }
 
-    override suspend fun cerrarSesion() = withContext(Dispatchers.IO) {
-        try {
-            lecturaRepository.cancelarListeners()
-        } catch (_: Exception) {}
-        try {
-            inquilinoRepository.cancelarListeners()
-        } catch (_: Exception) {}
-        try {
-            database.clearAllTables()
-        } catch (_: Exception) {}
-        try {
-            settingsManager.limpiarConfiguracion()
-        } catch (_: Exception) {}
-        try {
-            auth.signOut()
-        } catch (_: Exception) {}
+    override suspend fun cerrarSesion() {
+        withContext(Dispatchers.IO) {
+            var firstFailure: Exception? = null
+            try {
+                lecturaRepository.cancelarListeners()
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "No se pudieron cancelar listeners de lecturas", e)
+                firstFailure = e
+            }
+            try {
+                inquilinoRepository.cancelarListeners()
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "No se pudieron cancelar listeners de inquilinos", e)
+                if (firstFailure == null) firstFailure = e
+            }
+            try {
+                database.clearAllTables()
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "No se pudo limpiar Room durante el cierre de sesión", e)
+                if (firstFailure == null) firstFailure = e
+            }
+            try {
+                settingsManager.limpiarConfiguracion()
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "No se pudo limpiar la configuración durante el cierre de sesión", e)
+                if (firstFailure == null) firstFailure = e
+            }
+            try {
+                auth.signOut()
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "No se pudo cerrar la sesión de Firebase", e)
+                if (firstFailure == null) firstFailure = e
+            }
+            firstFailure?.let { throw it }
+        }
     }
 
     override fun enviarCorreoRecuperacion(email: String, onResult: (Boolean, String?) -> Unit) {

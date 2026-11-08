@@ -1,6 +1,6 @@
 # Roadmap y Hoja de Ruta - App Kilowatt ⚡
 
-**Fecha de última revisión:** Octubre 2026
+**Fecha de última revisión:** Noviembre 2026
 **Responsable de Mantenimiento:** Agente Arquitecto (`@SKILL_ARQUITECTO.md`) / Agente Desarrollo (`@SKILL_DESARROLLO.md`)
 
 ---
@@ -31,6 +31,9 @@
 - [x] **Iteración 2.2:** Refactorización Single Source of Truth (SSOT) en `LecturaRepository` (Lectura local en Room + Sincronización remota Firestore).
 - [x] **Iteración 2.3:** Refactorización SSOT en `InquilinoRepository` y sincronización diferida en background con `SyncWorker` (WorkManager).
 - [x] **Iteración 2.4:** Aislamiento de datos Multi-Tenant y purga atómica de Room y `SettingsManager` al cerrar sesión.
+- [x] **DT-06 / Iteración 1:** Contrato `OperationResult<T>`, abortar Firestore ante fallo de Room, propagación de errores de Flow a la UI, logs estructurados y pruebas de `PendingSync`/`Failed`/fallo de lectura.
+- [x] **DT-07 / Iteración 2:** Outbox persistente Room v7, transacciones atómicas, `@HiltWorker`, recuperación de `PROCESSING` y reintentos WorkManager con red conectada.
+- [x] **DT-08 / Iteración 3:** Reconciliación Firestore–Room para `ADDED`, `MODIFIED` y `REMOVED`, protección de conflictos con la outbox y aislamiento por UID.
 
 ---
 
@@ -56,10 +59,10 @@
 
 ---
 
-### Fase 6: Métricas Avanzadas, Proyecciones y Exportaciones (Planificada ⏳)
-- [ ] **Iteración 6.1:** Proyección estimada del recibo del mes en curso basada en la tasa de consumo diario actual.
-- [ ] **Iteración 6.2:** Exportación de historial consolidado de cobros e ingresos a formato Excel/CSV para contabilidad del arrendador.
-- [ ] **Iteración 6.3:** Soporte para modo oscuro (Dark Theme) adaptativo Material 3.
+### Fase 6: Métricas Avanzadas, Proyecciones y Exportaciones (Preparada ⏳)
+- [ ] **Iteración 6.1:** Definir y probar la proyección estimada del recibo del mes en curso basada en consumo diario, periodo transcurrido y costo por kWh.
+- [ ] **Iteración 6.2:** Diseñar la exportación de historial consolidado de cobros e ingresos a Excel/CSV, preservando importes y estados de pago.
+- [ ] **Iteración 6.3:** Incorporar modo oscuro adaptativo Material 3 y validar contraste, navegación y generación de PDF.
 
 ---
 
@@ -68,8 +71,8 @@
 | Módulo / Fase | Tareas Totales | Completadas | Estado |
 | :--- | :---: | :---: | :---: |
 | **Fase 1: MVVM & Hilt** | 6 | 6 | 100% ✅ |
-| **Fase 2: SSOT Offline-First** | 4 | 4 | 100% ✅ |
+| **Fase 2: SSOT Offline-First** | 7 | 7 | 100% ✅ |
 | **Fase 3: Sellos & Comprobantes** | 3 | 3 | 100% ✅ |
 | **Fase 4: Rediseño M3** | 3 | 3 | 100% ✅ |
-| **Fase 5: Prorrateo Personas** | 4 | 2 | 50% 🚀 |
+| **Fase 5: Prorrateo Personas** | 4 | 4 | 100% ✅ |
 | **Fase 6: Métricas Avanzadas** | 3 | 0 | 0% ⏳ |

@@ -266,8 +266,7 @@ Enum de dominio que especifica la modalidad matemática de distribución del con
 - Los datos de pago del propietario (`nombrePropietario`, `numeroPago`, `diaLimitePago`, `tipoProrrateoComun`) no están modelados en una tabla de Room; se persisten localmente en `SharedPreferences` mediante `SettingsManager` para acceso síncrono rápido y se respaldan en la nube en el documento Firestore `usuarios/{uid}/perfil/datos_pago`.
 
 ### 7.4. Migraciones
-- `AppDatabase` cuenta con configuración `fallbackToDestructiveMigration()`. Para preservar la integridad de los datos locales sin destrucción en producción ante la adición de `numeroPersonas`, la base de datos se actualiza a la versión 6 mediante el script de migración explícito `MIGRATION_5_6`:
+- `AppDatabase` no usa migraciones destructivas. Para preservar la integridad de los datos locales ante la adición de `numeroPersonas`, la base de datos se actualiza mediante scripts explícitos (`MIGRATION_5_6` y `MIGRATION_6_7`), que deben ampliarse junto con cada cambio de esquema:
   ```sql
   ALTER TABLE inquilinos ADD COLUMN numeroPersonas INTEGER NOT NULL DEFAULT 1;
   ```
-

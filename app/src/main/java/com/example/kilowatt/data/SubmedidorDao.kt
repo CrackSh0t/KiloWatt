@@ -16,4 +16,7 @@ interface SubmedidorDao {
 
     @androidx.room.Delete
     suspend fun eliminarSubmedidor(submedidor: Submedidor)
+
+    @Query("DELETE FROM submedidores WHERE idSubmedidor = :idSubmedidor")
+    suspend fun eliminarPorId(idSubmedidor: String)
 }

@@ -1,5 +1,6 @@
 package com.example.kilowatt.data
 
+import com.example.kilowatt.domain.OperationResult
 import kotlinx.coroutines.flow.Flow
 
 interface IInquilinoRepository {
@@ -13,22 +14,20 @@ interface IInquilinoRepository {
         esAreaComun: Boolean,
         pagaAreaComun: Boolean,
         numeroPersonas: Int = 1,
-    ): Pair<Boolean, String?>
+    ): OperationResult<Unit>
     suspend fun guardarPerfilPropietario(
         nombre: String,
         numero: String,
         diaLimite: Int,
         tipoProrrateoComun: String = "EQUITY",
-    ): Pair<Boolean, String?>
-    fun actualizarInquilinoYSubmedidor(
+    ): OperationResult<Unit>
+    suspend fun actualizarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,
-        onComplete: (Boolean, String?) -> Unit,
-    )
-    fun eliminarInquilinoYSubmedidor(
+    ): OperationResult<Unit>
+    suspend fun eliminarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,
-        onComplete: (Boolean, String?) -> Unit,
-    )
+    ): OperationResult<Unit>
     fun cancelarListeners()
 }

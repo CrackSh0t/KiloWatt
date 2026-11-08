@@ -16,4 +16,7 @@ interface InquilinoDao {
 
     @androidx.room.Delete
     suspend fun eliminarInquilino(inquilino: Inquilino)
+
+    @Query("DELETE FROM inquilinos WHERE idInquilino = :idInquilino")
+    suspend fun eliminarPorId(idInquilino: String)
 }

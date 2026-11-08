@@ -7,6 +7,8 @@ import com.example.kilowatt.data.FacturaGeneralDao
 import com.example.kilowatt.data.InquilinoDao
 import com.example.kilowatt.data.LecturaDao
 import com.example.kilowatt.data.MIGRATION_5_6
+import com.example.kilowatt.data.MIGRATION_6_7
+import com.example.kilowatt.data.PendingOperationDao
 import com.example.kilowatt.data.SubmedidorDao
 import dagger.Module
 import dagger.Provides
@@ -29,8 +31,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "kilowatt_database",
         )
-            .addMigrations(MIGRATION_5_6)
-            .fallbackToDestructiveMigration()
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
             .build()
     }
 
@@ -56,5 +57,10 @@ object DatabaseModule {
     @Singleton
     fun provideSubmedidorDao(database: AppDatabase): SubmedidorDao {
         return database.submedidorDao()
+    }
+
+    @Provides
+    fun providePendingOperationDao(database: AppDatabase): PendingOperationDao {
+        return database.pendingOperationDao()
     }
 }

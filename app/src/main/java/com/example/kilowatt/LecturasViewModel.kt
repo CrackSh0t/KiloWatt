@@ -8,6 +8,7 @@ import com.example.kilowatt.data.IInquilinoRepository
 import com.example.kilowatt.data.ILecturaRepository
 import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.domain.OperationResult
 import com.example.kilowatt.util.CobroCalculator
 import com.example.kilowatt.util.ValidacionLecturaResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +17,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -38,7 +41,14 @@ class LecturasViewModel @Inject constructor(
 
     private fun observarSubmedidores() {
         viewModelScope.launch {
-            inquilinoRepository.obtenerSubmedidoresFlow().collect { lista ->
+            inquilinoRepository.obtenerSubmedidoresFlow()
+                .catch { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        mensajeNotificacion = "Error al cargar medidores: ${exception.localizedMessage}",
+                        esError = true,
+                    )
+                }
+                .collect { lista ->
                 _uiState.value = _uiState.value.copy(submedidoresDisponibles = lista)
             }
         }
@@ -53,13 +63,19 @@ class LecturasViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(mesPeriodo = mesLimpio)
-            try {
-                val lecturas = lecturaRepository.obtenerLecturasPorMesFlow(mesLimpio).first()
-                val lecturaPrev = lecturas.find { it.idSubmedidor == submedidor.idSubmedidor }
-                _uiState.value = _uiState.value.copy(ultimaLecturaSubmedidor = lecturaPrev)
-            } catch (_: Exception) {
-                _uiState.value = _uiState.value.copy(ultimaLecturaSubmedidor = null)
-            }
+            lecturaRepository.obtenerLecturasPorMesFlow(mesLimpio)
+                .catch { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        ultimaLecturaSubmedidor = null,
+                        mensajeNotificacion = "Error al cargar la lectura previa: ${exception.localizedMessage}",
+                        esError = true,
+                    )
+                }
+                .firstOrNull()
+                ?.let { lecturas ->
+                    val lecturaPrev = lecturas.find { it.idSubmedidor == submedidor.idSubmedidor }
+                    _uiState.value = _uiState.value.copy(ultimaLecturaSubmedidor = lecturaPrev)
+                }
         }
     }
 
@@ -86,17 +102,20 @@ class LecturasViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            val (exito, error) = lecturaRepository.guardarFactura(factura)
-            _uiState.value = if (exito) {
-                _uiState.value.copy(
+            when (val resultado = lecturaRepository.guardarFactura(factura)) {
+                is OperationResult.Synced -> _uiState.value = _uiState.value.copy(
                     estaGuardandoReciboBase = false,
                     mensajeNotificacion = "¡Recibo Base guardado para $mesLimpio!",
                     esError = false,
                 )
-            } else {
-                _uiState.value.copy(
+                is OperationResult.PendingSync -> _uiState.value = _uiState.value.copy(
                     estaGuardandoReciboBase = false,
-                    mensajeNotificacion = "Error al guardar recibo: $error",
+                    mensajeNotificacion = resultado.reason ?: "Recibo guardado localmente; pendiente de sincronización",
+                    esError = false,
+                )
+                is OperationResult.Failed -> _uiState.value = _uiState.value.copy(
+                    estaGuardandoReciboBase = false,
+                    mensajeNotificacion = "Error al guardar recibo: ${resultado.message}",
                     esError = true,
                 )
             }
@@ -168,19 +187,25 @@ class LecturasViewModel @Inject constructor(
                     montoPagarSoles = montoPagar,
                 )
 
-                val (exito, error) = lecturaRepository.guardarLectura(nuevaLectura)
-                if (exito) {
-                    val msj = "Guardado: %.1f kWh | Total: S/ %.2f".format(consumoKwh, montoPagar)
-                    _uiState.value = _uiState.value.copy(
+                when (val resultado = lecturaRepository.guardarLectura(nuevaLectura)) {
+                    is OperationResult.Synced -> {
+                        val msj = "Guardado: %.1f kWh | Total: S/ %.2f".format(consumoKwh, montoPagar)
+                        _uiState.value = _uiState.value.copy(
+                            estaGuardandoLectura = false,
+                            mensajeNotificacion = msj,
+                            esError = false,
+                            ultimaLecturaSubmedidor = nuevaLectura,
+                        )
+                    }
+                    is OperationResult.PendingSync -> _uiState.value = _uiState.value.copy(
                         estaGuardandoLectura = false,
-                        mensajeNotificacion = msj,
+                        mensajeNotificacion = resultado.reason ?: "Lectura guardada localmente; pendiente de sincronización",
                         esError = false,
                         ultimaLecturaSubmedidor = nuevaLectura,
                     )
-                } else {
-                    _uiState.value = _uiState.value.copy(
+                    is OperationResult.Failed -> _uiState.value = _uiState.value.copy(
                         estaGuardandoLectura = false,
-                        mensajeNotificacion = "Error al guardar lectura: $error",
+                        mensajeNotificacion = "Error al guardar lectura: ${resultado.message}",
                         esError = true,
                     )
                 }

@@ -154,17 +154,22 @@ class MainActivity : AppCompatActivity() {
             dialogBinding.btnGuardarPerfil.isEnabled = false
             lifecycleScope.launch {
                 try {
-                    val (exito, error) = inquilinoRepository.guardarPerfilPropietario(
+                    val resultado = inquilinoRepository.guardarPerfilPropietario(
                         nombre = nombre,
                         numero = numero,
                         diaLimite = diaLimite,
                         tipoProrrateoComun = tipoProrrateo,
                     )
-                    if (exito) {
+                    if (resultado is com.example.kilowatt.domain.OperationResult.Synced) {
                         Toast.makeText(this@MainActivity, "Perfil de cobro actualizado", Toast.LENGTH_SHORT).show()
                         dialog.dismiss()
                     } else {
-                        Toast.makeText(this@MainActivity, "Guardado local. Error nube: $error", Toast.LENGTH_LONG).show()
+                        val mensaje = when (resultado) {
+                            is com.example.kilowatt.domain.OperationResult.PendingSync -> resultado.reason
+                            is com.example.kilowatt.domain.OperationResult.Failed -> resultado.message
+                            is com.example.kilowatt.domain.OperationResult.Synced -> null
+                        }
+                        Toast.makeText(this@MainActivity, mensaje ?: "No se pudo sincronizar el perfil", Toast.LENGTH_LONG).show()
                         dialog.dismiss()
                     }
                 } catch (e: Exception) {

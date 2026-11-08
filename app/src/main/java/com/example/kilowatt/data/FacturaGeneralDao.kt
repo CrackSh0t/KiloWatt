@@ -15,4 +15,7 @@ interface FacturaGeneralDao {
 
     @Query("SELECT * FROM factura_general ORDER BY mesPeriodo DESC")
     fun obtenerTodasLasFacturas(): kotlinx.coroutines.flow.Flow<List<FacturaGeneral>>
+
+    @Query("DELETE FROM factura_general WHERE idFactura = :idFactura")
+    suspend fun eliminarPorId(idFactura: String)
 }

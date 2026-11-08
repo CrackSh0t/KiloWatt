@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.kilowatt.data.DetalleCobro
 import com.example.kilowatt.data.IInquilinoRepository
 import com.example.kilowatt.data.ILecturaRepository
+import com.example.kilowatt.domain.OperationResult
 import com.example.kilowatt.util.CobroCalculator
 import com.example.kilowatt.util.ISettingsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,7 +41,14 @@ class ResumenCobrosViewModel @Inject constructor(
 
     private fun observarFacturasYMeses() {
         viewModelScope.launch {
-            lecturaRepository.obtenerFacturasFlow().collect { facturas ->
+            lecturaRepository.obtenerFacturasFlow()
+                .catch { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "Error al cargar facturas: ${exception.localizedMessage}",
+                        estaCargando = false,
+                    )
+                }
+                .collect { facturas ->
                 val nuevosMeses = facturas.map { it.mesPeriodo.trim() }.distinct()
                 val estadoActual = _uiState.value
 
@@ -138,7 +147,14 @@ class ResumenCobrosViewModel @Inject constructor(
                     precioKwhPromedio = resultado.precioKwhPromedio,
                     detalles = resultado.detalles,
                 )
-            }.collect {}
+            }
+                .catch { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "Error al cargar el resumen: ${exception.localizedMessage}",
+                        estaCargando = false,
+                    )
+                }
+                .collect {}
         }
     }
 
@@ -155,9 +171,17 @@ class ResumenCobrosViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val (exito, error) = lecturaRepository.actualizarEstadoPago(detalle.idLectura, nuevoEstado, fechaPago, metodoPago)
-            onResult(exito, error)
+            when (val resultado = lecturaRepository.actualizarEstadoPago(detalle.idLectura, nuevoEstado, fechaPago, metodoPago)) {
+                is OperationResult.Synced -> onResult(true, null)
+                is OperationResult.PendingSync -> onResult(true, resultado.reason)
+                is OperationResult.Failed -> onResult(false, resultado.message)
+            }
         }
+
+    }
+
+    fun consumirError() {
+        _uiState.value = _uiState.value.copy(mensajeError = null)
     }
 
     class Factory(

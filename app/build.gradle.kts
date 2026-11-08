@@ -36,6 +36,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
+        freeCompilerArgs += "-Xmetadata-version=2.0.0"
     }
     packaging {
         resources {

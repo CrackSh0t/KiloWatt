@@ -6,6 +6,7 @@ import com.example.kilowatt.data.ILecturaRepository
 import com.example.kilowatt.data.Inquilino
 import com.example.kilowatt.data.Lectura
 import com.example.kilowatt.data.Submedidor
+import com.example.kilowatt.domain.OperationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -43,16 +44,16 @@ class HistorialConsumoViewModelTest {
         override fun obtenerFacturasFlow(): Flow<List<FacturaGeneral>> = flowOf(facturas)
         override fun obtenerLecturasPorMesFlow(mes: String): Flow<List<Lectura>> = flowOf(lecturas)
         override fun obtenerTodasLasLecturasFlow(): Flow<List<Lectura>> = flowOf(lecturas)
-        override suspend fun guardarFactura(factura: FacturaGeneral): Pair<Boolean, String?> = Pair(true, null)
-        override suspend fun guardarLectura(lectura: Lectura): Pair<Boolean, String?> = Pair(true, null)
+        override suspend fun guardarFactura(factura: FacturaGeneral): OperationResult<Unit> = OperationResult.Synced(Unit)
+        override suspend fun guardarLectura(lectura: Lectura): OperationResult<Unit> = OperationResult.Synced(Unit)
         override suspend fun actualizarEstadoPago(
             idLectura: String,
             nuevoEstado: String,
             fechaPago: Long?,
             metodoPago: String?,
-        ): Pair<Boolean, String?> {
+        ): OperationResult<Unit> {
             estadoActualizado = nuevoEstado
-            return Pair(true, null)
+            return OperationResult.Synced(Unit)
         }
         override fun cancelarListeners() {}
     }
@@ -71,20 +72,20 @@ class HistorialConsumoViewModelTest {
             esAreaComun: Boolean,
             pagaAreaComun: Boolean,
             numeroPersonas: Int,
-        ): Pair<Boolean, String?> = Pair(true, null)
+        ): OperationResult<Unit> = OperationResult.Synced(Unit)
 
         override suspend fun guardarPerfilPropietario(
             nombre: String,
             numero: String,
             diaLimite: Int,
             tipoProrrateoComun: String,
-        ): Pair<Boolean, String?> = Pair(true, null)
-        override fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
-            onComplete(true, null)
+        ): OperationResult<Unit> = OperationResult.Synced(Unit)
+        override suspend fun actualizarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor): OperationResult<Unit> {
+            return OperationResult.Synced(Unit)
         }
 
-        override fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor, onComplete: (Boolean, String?) -> Unit) {
-            onComplete(true, null)
+        override suspend fun eliminarInquilinoYSubmedidor(inquilino: Inquilino?, submedidor: Submedidor): OperationResult<Unit> {
+            return OperationResult.Synced(Unit)
         }
         override fun cancelarListeners() {}
     }

@@ -2,22 +2,31 @@ package com.example.kilowatt.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
+import com.example.kilowatt.domain.OperationResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import androidx.room.withTransaction
+import android.content.Context
+import com.example.kilowatt.worker.OutboxScheduler
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.UUID
 import javax.inject.Inject
 import kotlin.coroutines.resume
 
 class InquilinoRepository @Inject constructor(
     private val inquilinoDao: InquilinoDao,
     private val submedidorDao: SubmedidorDao,
+    private val database: AppDatabase,
+    @ApplicationContext private val context: Context,
 ) : IInquilinoRepository {
 
     private val db = FirebaseFirestore.getInstance()
@@ -48,7 +57,11 @@ class InquilinoRepository @Inject constructor(
             inquilinosListener = null
             perfilListener?.remove()
             perfilListener = null
-        } catch (_: Exception) {}
+        } finally {
+            submedidoresListener = null
+            inquilinosListener = null
+            perfilListener = null
+        }
     }
 
     // Guardar Inquilino y Submedidor - SSOT: Local Room primero con IDs unificados de Firestore
@@ -59,12 +72,14 @@ class InquilinoRepository @Inject constructor(
         esAreaComun: Boolean,
         pagaAreaComun: Boolean,
         numeroPersonas: Int,
-    ): Pair<Boolean, String?> {
-        val inqRef = inquilinosRef
-        val subRef = submedidoresRef
+    ): OperationResult<Unit> {
+        val currentUid = uid ?: return OperationResult.Failed(
+            IllegalStateException("Usuario no autenticado"),
+            "Usuario no autenticado",
+        )
 
-        val idSubmedidorReal = subRef?.document()?.id ?: "sub_${System.currentTimeMillis()}"
-        val idInquilinoReal = if (esAreaComun) "" else (inqRef?.document()?.id ?: "inq_${System.currentTimeMillis()}")
+        val idSubmedidorReal = "sub_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}"
+        val idInquilinoReal = if (esAreaComun) "" else "inq_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}"
 
         val subTemp = Submedidor(
             idSubmedidor = idSubmedidorReal,
@@ -81,134 +96,92 @@ class InquilinoRepository @Inject constructor(
         )
 
         try {
-            submedidorDao.insertarSubmedidor(subTemp)
-            if (inqTemp != null) {
-                inquilinoDao.insertarInquilino(inqTemp)
-            }
-        } catch (_: Exception) {}
-
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                if (inqRef == null || subRef == null) {
-                    if (continuation.isActive) continuation.resume(Pair(true, null))
-                    return@suspendCancellableCoroutine
+            database.withTransaction {
+                submedidorDao.insertarSubmedidor(subTemp)
+                database.pendingOperationDao().insertar(
+                    PendingOperationFactory.crear(
+                        currentUid, "SUBMEDIDOR", PendingOperationType.CREATE,
+                        idSubmedidorReal, PendingOperationFactory.submedidor(subTemp),
+                    ),
+                )
+                if (inqTemp != null) {
+                    inquilinoDao.insertarInquilino(inqTemp)
+                    database.pendingOperationDao().insertar(
+                        PendingOperationFactory.crear(
+                            currentUid, "INQUILINO", PendingOperationType.CREATE,
+                            idInquilinoReal, PendingOperationFactory.inquilino(inqTemp),
+                        ),
+                    )
                 }
-
-                val batch = db.batch()
-
-                if (esAreaComun) {
-                    batch.set(subRef.document(idSubmedidorReal), subTemp)
-                } else {
-                    if (inqTemp != null) {
-                        batch.set(inqRef.document(idInquilinoReal), inqTemp)
-                    }
-                    batch.set(subRef.document(idSubmedidorReal), subTemp)
-                }
-
-                batch.commit()
-                    .addOnSuccessListener {
-                        if (continuation.isActive) continuation.resume(Pair(true, null))
-                    }
-                    .addOnFailureListener { e ->
-                        if (continuation.isActive) continuation.resume(Pair(true, "Guardado localmente. Error en nube: ${e.localizedMessage}"))
-                    }
-            } catch (e: Exception) {
-                if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
             }
+        } catch (e: Exception) {
+            return OperationResult.Failed(e, "No se pudo guardar localmente: ${e.localizedMessage}")
         }
+        OutboxScheduler.programar(context, currentUid)
+        return OperationResult.PendingSync(Unit, "Guardado localmente; pendiente de sincronización")
     }
 
     // SSOT: Submedidores desde Room DAO + Sincronización background con Firestore
     override fun obtenerSubmedidoresFlow(): Flow<List<Submedidor>> {
         sincronizarSubmedidoresRemotos()
         return submedidorDao.obtenerTodosLosSubmedidores()
-            .catch { emit(emptyList()) }
     }
 
     // SSOT: Inquilinos desde Room DAO + Sincronización background con Firestore
     override fun obtenerInquilinosFlow(): Flow<List<Inquilino>> {
         sincronizarInquilinosRemotos()
         return inquilinoDao.obtenerTodosLosInquilinos()
-            .catch { emit(emptyList()) }
     }
 
     // Actualizar cambios en Inquilino y Submedidor - SSOT: Local Room primero, luego Firestore
-    override fun actualizarInquilinoYSubmedidor(
+    override suspend fun actualizarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,
-        onComplete: (Boolean, String?) -> Unit,
-    ) {
+    ): OperationResult<Unit> {
         val inquilinoSanitizado = inquilino?.copy(
             numeroPersonas = inquilino.numeroPersonas.coerceAtLeast(1)
         )
-        scope.launch {
-            try {
+        val currentUid = uid ?: return OperationResult.Failed(IllegalStateException("Usuario no autenticado"), "Usuario no autenticado")
+        try {
+            database.withTransaction {
                 submedidorDao.insertarSubmedidor(submedidor)
+                database.pendingOperationDao().insertar(PendingOperationFactory.crear(currentUid, "SUBMEDIDOR", PendingOperationType.UPDATE, submedidor.idSubmedidor, PendingOperationFactory.submedidor(submedidor)))
                 if (inquilinoSanitizado != null) {
                     inquilinoDao.insertarInquilino(inquilinoSanitizado)
+                    database.pendingOperationDao().insertar(PendingOperationFactory.crear(currentUid, "INQUILINO", PendingOperationType.UPDATE, inquilinoSanitizado.idInquilino, PendingOperationFactory.inquilino(inquilinoSanitizado)))
                 }
-            } catch (_: Exception) {}
-        }
-
-        try {
-            val inqRef = inquilinosRef
-            val subRef = submedidoresRef
-
-            if (subRef == null) {
-                onComplete(true, null)
-                return
             }
-
-            val batch = db.batch()
-            batch.set(subRef.document(submedidor.idSubmedidor), submedidor)
-            if (inquilinoSanitizado != null && inqRef != null && inquilinoSanitizado.idInquilino.isNotEmpty()) {
-                batch.set(inqRef.document(inquilinoSanitizado.idInquilino), inquilinoSanitizado)
-            }
-
-            batch.commit()
-                .addOnSuccessListener { onComplete(true, null) }
-                .addOnFailureListener { e -> onComplete(true, "Guardado localmente. Error en nube: ${e.localizedMessage}") }
         } catch (e: Exception) {
-            onComplete(false, e.localizedMessage)
+            android.util.Log.e("InquilinoRepository", "entidad=Submedidor/Inquilino operación=actualizar id=${submedidor.idSubmedidor} uid=${uid ?: "anonimo"}", e)
+            return OperationResult.Failed(e, "No se pudo actualizar localmente: ${e.localizedMessage}")
         }
+
+        OutboxScheduler.programar(context, currentUid)
+        return OperationResult.PendingSync(Unit, "Actualizado localmente; pendiente de sincronización")
     }
 
     // Eliminar registros - SSOT: Local Room primero, luego Firestore
-    override fun eliminarInquilinoYSubmedidor(
+    override suspend fun eliminarInquilinoYSubmedidor(
         inquilino: Inquilino?,
         submedidor: Submedidor,
-        onComplete: (Boolean, String?) -> Unit,
-    ) {
-        scope.launch {
-            try {
+    ): OperationResult<Unit> {
+        val currentUid = uid ?: return OperationResult.Failed(IllegalStateException("Usuario no autenticado"), "Usuario no autenticado")
+        try {
+            database.withTransaction {
                 submedidorDao.eliminarSubmedidor(submedidor)
+                database.pendingOperationDao().insertar(PendingOperationFactory.crear(currentUid, "SUBMEDIDOR", PendingOperationType.DELETE, submedidor.idSubmedidor, PendingOperationFactory.submedidor(submedidor)))
                 if (inquilino != null) {
                     inquilinoDao.eliminarInquilino(inquilino)
+                    database.pendingOperationDao().insertar(PendingOperationFactory.crear(currentUid, "INQUILINO", PendingOperationType.DELETE, inquilino.idInquilino, PendingOperationFactory.inquilino(inquilino)))
                 }
-            } catch (_: Exception) {}
-        }
-
-        try {
-            val inqRef = inquilinosRef
-            val subRef = submedidoresRef
-
-            if (subRef == null) {
-                onComplete(true, null)
-                return
             }
-
-            val batch = db.batch()
-            batch.delete(subRef.document(submedidor.idSubmedidor))
-            if (inquilino != null && inqRef != null && inquilino.idInquilino.isNotEmpty()) {
-                batch.delete(inqRef.document(inquilino.idInquilino))
-            }
-
-            batch.commit()
-                .addOnSuccessListener { onComplete(true, null) }
-                .addOnFailureListener { e -> onComplete(true, "Eliminado localmente. Error en nube: ${e.localizedMessage}") }
         } catch (e: Exception) {
-            onComplete(false, e.localizedMessage)
+            android.util.Log.e("InquilinoRepository", "entidad=Submedidor/Inquilino operación=eliminar id=${submedidor.idSubmedidor} uid=${uid ?: "anonimo"}", e)
+            return OperationResult.Failed(e, "No se pudo eliminar localmente: ${e.localizedMessage}")
         }
+
+        OutboxScheduler.programar(context, currentUid)
+        return OperationResult.PendingSync(Unit, "Eliminado localmente; pendiente de sincronización")
     }
 
     // Guardar perfil del propietario en Firestore (Suspend)
@@ -217,12 +190,12 @@ class InquilinoRepository @Inject constructor(
         numero: String,
         diaLimite: Int,
         tipoProrrateoComun: String,
-    ): Pair<Boolean, String?> =
+    ): OperationResult<Unit> =
         suspendCancellableCoroutine { continuation ->
             try {
                 val pRef = perfilRef
                 if (pRef == null) {
-                    if (continuation.isActive) continuation.resume(Pair(false, "Usuario no autenticado"))
+                    if (continuation.isActive) continuation.resume(OperationResult.Failed(IllegalStateException("Usuario no autenticado"), "Usuario no autenticado"))
                     return@suspendCancellableCoroutine
                 }
 
@@ -235,13 +208,13 @@ class InquilinoRepository @Inject constructor(
                 pRef.document("datos_pago")
                     .set(perfil)
                     .addOnSuccessListener {
-                        if (continuation.isActive) continuation.resume(Pair(true, null))
+                        if (continuation.isActive) continuation.resume(OperationResult.Synced(Unit))
                     }
                     .addOnFailureListener { e ->
-                        if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+                        if (continuation.isActive) continuation.resume(OperationResult.Failed(e, e.localizedMessage ?: "Error al guardar perfil"))
                     }
             } catch (e: Exception) {
-                if (continuation.isActive) continuation.resume(Pair(false, e.localizedMessage))
+                if (continuation.isActive) continuation.resume(OperationResult.Failed(e, e.localizedMessage ?: "Error al guardar perfil"))
             }
         }
 
@@ -258,7 +231,7 @@ class InquilinoRepository @Inject constructor(
         perfilListener = pRef.document("datos_pago").addSnapshotListener { snapshot, error ->
             if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
             if (error != null) {
-                trySend(null)
+                close(error)
                 return@addSnapshotListener
             }
             trySend(snapshot?.data)
@@ -267,9 +240,11 @@ class InquilinoRepository @Inject constructor(
             try {
                 perfilListener?.remove()
                 perfilListener = null
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("InquilinoRepository", "Error al cerrar listener de perfil", e)
+            }
         }
-    }.catch { emit(null) }
+    }
 
     private fun sincronizarSubmedidoresRemotos() {
         val currentUid = auth.currentUser?.uid ?: return
@@ -278,13 +253,42 @@ class InquilinoRepository @Inject constructor(
 
         submedidoresListener = subRef.addSnapshotListener { snapshot, error ->
             if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
-            if (error == null && snapshot != null) {
-                val lista = snapshot.toObjects<Submedidor>()
-                scope.launch {
-                    for (sub in lista) {
+            if (error != null) {
+                android.util.Log.e("InquilinoRepository", "entidad=Submedidor operación=sincronizar id=coleccion uid=$currentUid", error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                snapshot.documentChanges.forEach { change ->
+                    scope.launch {
+                        if (auth.currentUser?.uid != currentUid) return@launch
+                        val documentId = change.document.id
+                        val tieneOperacionLocal = database.pendingOperationDao().existeOperacionPendiente(
+                            currentUid,
+                            "SUBMEDIDOR",
+                            documentId,
+                        )
+                        if (!RemoteChangeReconciler.debeAplicarCambio(change.type, true, tieneOperacionLocal)) {
+                            android.util.Log.w(
+                                "InquilinoRepository",
+                                "conflicto=REMOVED entidad=Submedidor id=$documentId uid=$currentUid operación_local=true",
+                            )
+                            return@launch
+                        }
                         try {
-                            submedidorDao.insertarSubmedidor(sub)
-                        } catch (_: Exception) {}
+                            when (change.type) {
+                                DocumentChange.Type.ADDED, DocumentChange.Type.MODIFIED -> {
+                                    val submedidor = change.document.toObject<Submedidor>()
+                                    if (submedidor != null) submedidorDao.insertarSubmedidor(submedidor)
+                                }
+                                DocumentChange.Type.REMOVED -> submedidorDao.eliminarPorId(documentId)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e(
+                                "InquilinoRepository",
+                                "Entidad=Submedidor operación=${change.type} id=$documentId uid=$currentUid",
+                                e,
+                            )
+                        }
                     }
                 }
             }
@@ -298,15 +302,46 @@ class InquilinoRepository @Inject constructor(
 
         inquilinosListener = inqRef.addSnapshotListener { snapshot, error ->
             if (auth.currentUser?.uid != currentUid) return@addSnapshotListener
-            if (error == null && snapshot != null) {
-                val lista = snapshot.toObjects<Inquilino>().map { inq ->
-                    inq.copy(numeroPersonas = inq.numeroPersonas.coerceAtLeast(1))
-                }
-                scope.launch {
-                    for (inq in lista) {
+            if (error != null) {
+                android.util.Log.e("InquilinoRepository", "entidad=Inquilino operación=sincronizar id=coleccion uid=$currentUid", error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                snapshot.documentChanges.forEach { change ->
+                    scope.launch {
+                        if (auth.currentUser?.uid != currentUid) return@launch
+                        val documentId = change.document.id
+                        val tieneOperacionLocal = database.pendingOperationDao().existeOperacionPendiente(
+                            currentUid,
+                            "INQUILINO",
+                            documentId,
+                        )
+                        if (!RemoteChangeReconciler.debeAplicarCambio(change.type, true, tieneOperacionLocal)) {
+                            android.util.Log.w(
+                                "InquilinoRepository",
+                                "conflicto=REMOVED entidad=Inquilino id=$documentId uid=$currentUid operación_local=true",
+                            )
+                            return@launch
+                        }
                         try {
-                            inquilinoDao.insertarInquilino(inq)
-                        } catch (_: Exception) {}
+                            when (change.type) {
+                                DocumentChange.Type.ADDED, DocumentChange.Type.MODIFIED -> {
+                                    val inquilino = change.document.toObject<Inquilino>()
+                                    if (inquilino != null) {
+                                        inquilinoDao.insertarInquilino(
+                                            inquilino.copy(numeroPersonas = inquilino.numeroPersonas.coerceAtLeast(1)),
+                                        )
+                                    }
+                                }
+                                DocumentChange.Type.REMOVED -> inquilinoDao.eliminarPorId(documentId)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e(
+                                "InquilinoRepository",
+                                "Entidad=Inquilino operación=${change.type} id=$documentId uid=$currentUid",
+                                e,
+                            )
+                        }
                     }
                 }
             }
