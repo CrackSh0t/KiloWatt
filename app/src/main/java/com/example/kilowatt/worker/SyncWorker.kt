@@ -10,6 +10,7 @@ import com.example.kilowatt.data.PendingOperationType
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +51,7 @@ class SyncWorker @AssistedInject constructor(
             PendingOperationType.CREATE -> Tasks.await(reference.set(payload.toMap()))
             PendingOperationType.UPDATE -> {
                 if (operation.entityType == "LECTURA") {
-                    Tasks.await(reference.update(payload.toPaymentUpdateMap()))
+                    Tasks.await(reference.set(payload.toPaymentUpdateMap(), SetOptions.merge()))
                 } else {
                     Tasks.await(reference.set(payload.toMap()))
                 }

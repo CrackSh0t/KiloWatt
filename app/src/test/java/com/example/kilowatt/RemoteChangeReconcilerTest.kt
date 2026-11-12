@@ -8,13 +8,35 @@ import org.junit.Test
 
 class RemoteChangeReconcilerTest {
     @Test
-    fun addedSeAplicaCuandoUidCoincide() {
-        assertTrue(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.ADDED, uidCoincide = true))
+    fun addedSeAplicaCuandoUidCoincideYSinOperacionLocal() {
+        assertTrue(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.ADDED, uidCoincide = true, tieneOperacionLocal = false))
     }
 
     @Test
-    fun modifiedSeAplicaCuandoUidCoincide() {
-        assertTrue(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.MODIFIED, uidCoincide = true))
+    fun modifiedSeAplicaCuandoUidCoincideYSinOperacionLocal() {
+        assertTrue(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.MODIFIED, uidCoincide = true, tieneOperacionLocal = false))
+    }
+
+    @Test
+    fun addedSeBloqueaSiExisteOperacionLocal() {
+        assertFalse(
+            RemoteChangeReconciler.debeAplicarCambio(
+                DocumentChange.Type.ADDED,
+                uidCoincide = true,
+                tieneOperacionLocal = true,
+            ),
+        )
+    }
+
+    @Test
+    fun modifiedSeBloqueaSiExisteOperacionLocal() {
+        assertFalse(
+            RemoteChangeReconciler.debeAplicarCambio(
+                DocumentChange.Type.MODIFIED,
+                uidCoincide = true,
+                tieneOperacionLocal = true,
+            ),
+        )
     }
 
     @Test
@@ -31,5 +53,7 @@ class RemoteChangeReconcilerTest {
     @Test
     fun cualquierCambioSeIgnoraSiCambiaLaSesion() {
         assertFalse(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.REMOVED, uidCoincide = false))
+        assertFalse(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.ADDED, uidCoincide = false))
+        assertFalse(RemoteChangeReconciler.debeAplicarCambio(DocumentChange.Type.MODIFIED, uidCoincide = false))
     }
 }

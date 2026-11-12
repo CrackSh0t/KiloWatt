@@ -185,6 +185,9 @@ class LecturasViewModel @Inject constructor(
                     lecturaActual = lecAct,
                     consumoKwh = consumoKwh,
                     montoPagarSoles = montoPagar,
+                    estadoPago = lecturaExistente?.estadoPago ?: "PENDIENTE",
+                    fechaPago = lecturaExistente?.fechaPago,
+                    metodoPago = lecturaExistente?.metodoPago,
                 )
 
                 when (val resultado = lecturaRepository.guardarLectura(nuevaLectura)) {

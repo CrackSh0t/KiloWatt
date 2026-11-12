@@ -32,7 +32,10 @@ class ConfiguracionActivity : AppCompatActivity() {
         setupRecyclerView()
         observarEstadoViewModel()
 
-        binding.btnVolver.setOnClickListener {
+        setSupportActionBar(binding.topAppBar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        binding.topAppBar.setNavigationOnClickListener {
             finish()
         }
 
